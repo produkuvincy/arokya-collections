@@ -1,4 +1,7 @@
-// Sample Products
+// Ensure modal is hidden on load
+const cartModal = document.getElementById('cart-modal');
+cartModal.classList.add('hidden');
+
 const products = [
   { id: 1, name: 'Gold Earrings', price: 1200 },
   { id: 2, name: 'Silver Bangles', price: 900 },
@@ -8,7 +11,6 @@ const products = [
 
 const productContainer = document.getElementById('products');
 const cartBtn = document.getElementById('cart-btn');
-const cartModal = document.getElementById('cart-modal');
 const cartItemsList = document.getElementById('cart-items');
 const checkoutBtn = document.getElementById('checkout-btn');
 const closeCart = document.getElementById('close-cart');
@@ -30,7 +32,7 @@ function renderProducts() {
   });
 }
 
-// Add to Cart
+// Add to cart with qty
 function addToCart(id) {
   const item = products.find(p => p.id === id);
   const existing = cart.find(i => i.id === id);
@@ -39,7 +41,7 @@ function addToCart(id) {
   updateCartCount();
 }
 
-// Update Cart Count
+// Update cart button count
 function updateCartCount() {
   const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
   cartBtn.innerText = `Cart (${totalQty})`;
@@ -55,7 +57,7 @@ closeCart.addEventListener('click', () => {
   cartModal.classList.add('hidden');
 });
 
-// Render Cart Items
+// Render Cart
 function renderCart() {
   cartItemsList.innerHTML = '';
   if (!cart.length) {
@@ -63,90 +65,51 @@ function renderCart() {
     return;
   }
 
-  cart.forEach((item, index) => {
+  cart.forEach((item,index)=>{
     const li = document.createElement('li');
-    li.innerHTML = `
-      ${item.name} - ₹${(item.price * item.qty).toFixed(2)}
+    li.innerHTML = `${item.name} - ₹${(item.price*item.qty).toFixed(2)}
       <div class="quantity-controls">
         <button onclick="decreaseQty(${index})">-</button>
         <span>${item.qty}</span>
         <button onclick="increaseQty(${index})">+</button>
-      </div>
-    `;
+      </div>`;
     cartItemsList.appendChild(li);
   });
 
-  const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const total = cart.reduce((sum,i)=>sum+i.price*i.qty,0);
   const liTotal = document.createElement('li');
   liTotal.innerHTML = `<strong>Total: ₹${total.toFixed(2)}</strong>`;
   cartItemsList.appendChild(liTotal);
 }
 
 // Quantity Controls
-function increaseQty(index) {
-  cart[index].qty += 1;
-  renderCart();
-  updateCartCount();
-}
-
-function decreaseQty(index) {
-  if (cart[index].qty > 1) cart[index].qty -= 1;
-  else cart.splice(index, 1);
-  renderCart();
-  updateCartCount();
-}
+function increaseQty(index){cart[index].qty+=1; renderCart(); updateCartCount();}
+function decreaseQty(index){if(cart[index].qty>1) cart[index].qty-=1; else cart.splice(index,1); renderCart(); updateCartCount();}
 
 // Checkout Cart
-checkoutBtn.addEventListener('click', () => {
-  if (!cart.length) return alert('Your cart is empty!');
-  createRazorpayOrder(cart);
-});
+checkoutBtn.addEventListener('click',()=>{if(!cart.length) return alert('Your cart is empty!'); createRazorpayOrder(cart);});
 
-// Pay Now for individual product
-function payNow(id) {
-  const item = products.find(p => p.id === id);
-  createRazorpayOrder([{ ...item, qty: 1 }]);
+// Pay Now individual
+function payNow(id){
+  const item=products.find(p=>p.id===id);
+  createRazorpayOrder([{...item,qty:1}]);
 }
 
 // Create Razorpay Order
-async function createRazorpayOrder(items) {
-  const amount = items.reduce((sum, i) => sum + i.price * i.qty, 0);
-  try {
-    const res = await fetch('/create-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount })
+async function createRazorpayOrder(items){
+  const amount=items.reduce((sum,i)=>sum+i.price*i.qty,0);
+  try{
+    const res=await fetch('/create-order',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({amount})
     });
-    const order = await res.json();
-
-    if (!order.id) return alert('Failed to create order.');
-
-    const options = {
-      key: order.key,
-      amount: order.amount,
-      currency: order.currency,
-      name: 'Arokya Collections',
-      description: 'Jewelry Purchase',
-      order_id: order.id,
-      handler: function (response) {
-        alert('Payment Successful! Payment ID: ' + response.razorpay_payment_id);
-        // Clear cart if full checkout
-        if (items.length === cart.length) {
-          cart = [];
-          updateCartCount();
-          cartModal.classList.add('hidden');
-        }
-      },
-      prefill: { name: '', email: '', contact: '' },
-      theme: { color: '#d63384' }
-    };
-
-    const rzp = new Razorpay(options);
+    const order=await res.json();
+    if(!order.id) return alert('Failed to create order.');
+    const options={key:order.key,amount:order.amount,currency:order.currency,name:'Arokya Collections',description:'Jewelry Purchase',order_id:order.id,handler:function(r){alert('Payment Successful! Payment ID: '+r.razorpay_payment_id); if(items.length===cart.length){cart=[];updateCartCount();cartModal.classList.add('hidden');}},prefill:{name:'',email:'',contact:''},theme:{color:'#d63384'}};
+    const rzp=new Razorpay(options);
     rzp.open();
-  } catch (err) {
-    console.error(err);
-    alert('Error creating payment.');
-  }
+  }catch(err){console.error(err);alert('Error creating payment.');}
 }
 
 // Initialize
