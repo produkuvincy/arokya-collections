@@ -1,3 +1,4 @@
+// Sample Products
 const products = [
   { id: 1, name: 'Gold Earrings', price: 1200 },
   { id: 2, name: 'Silver Bangles', price: 900 },
@@ -14,6 +15,7 @@ const closeCart = document.getElementById('close-cart');
 
 let cart = [];
 
+// Render Products
 function renderProducts() {
   products.forEach(p => {
     const div = document.createElement('div');
@@ -28,34 +30,32 @@ function renderProducts() {
   });
 }
 
-// Add to Cart with quantity tracking
+// Add to Cart
 function addToCart(id) {
   const item = products.find(p => p.id === id);
   const existing = cart.find(i => i.id === id);
-  if (existing) {
-    existing.qty += 1;
-  } else {
-    cart.push({ ...item, qty: 1 });
-  }
+  if (existing) existing.qty += 1;
+  else cart.push({ ...item, qty: 1 });
   updateCartCount();
 }
 
-// Update cart button count
+// Update Cart Count
 function updateCartCount() {
   const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
   cartBtn.innerText = `Cart (${totalQty})`;
 }
 
-// Open cart modal
-cartBtn.onclick = () => {
+// Open/Close Cart Modal
+cartBtn.addEventListener('click', () => {
   renderCart();
   cartModal.classList.remove('hidden');
-};
+});
 
-// Close cart modal
-closeCart.onclick = () => cartModal.classList.add('hidden');
+closeCart.addEventListener('click', () => {
+  cartModal.classList.add('hidden');
+});
 
-// Render cart items
+// Render Cart Items
 function renderCart() {
   cartItemsList.innerHTML = '';
   if (!cart.length) {
@@ -63,9 +63,16 @@ function renderCart() {
     return;
   }
 
-  cart.forEach(item => {
+  cart.forEach((item, index) => {
     const li = document.createElement('li');
-    li.textContent = `${item.name} x ${item.qty} - ₹${(item.price * item.qty).toFixed(2)}`;
+    li.innerHTML = `
+      ${item.name} - ₹${(item.price * item.qty).toFixed(2)}
+      <div class="quantity-controls">
+        <button onclick="decreaseQty(${index})">-</button>
+        <span>${item.qty}</span>
+        <button onclick="increaseQty(${index})">+</button>
+      </div>
+    `;
     cartItemsList.appendChild(li);
   });
 
@@ -75,14 +82,25 @@ function renderCart() {
   cartItemsList.appendChild(liTotal);
 }
 
-// Checkout all items in cart
-checkoutBtn.onclick = () => {
-  if (!cart.length) {
-    alert('Your cart is empty!');
-    return;
-  }
+// Quantity Controls
+function increaseQty(index) {
+  cart[index].qty += 1;
+  renderCart();
+  updateCartCount();
+}
+
+function decreaseQty(index) {
+  if (cart[index].qty > 1) cart[index].qty -= 1;
+  else cart.splice(index, 1);
+  renderCart();
+  updateCartCount();
+}
+
+// Checkout Cart
+checkoutBtn.addEventListener('click', () => {
+  if (!cart.length) return alert('Your cart is empty!');
   createRazorpayOrder(cart);
-};
+});
 
 // Pay Now for individual product
 function payNow(id) {
@@ -90,7 +108,7 @@ function payNow(id) {
   createRazorpayOrder([{ ...item, qty: 1 }]);
 }
 
-// Create Razorpay order
+// Create Razorpay Order
 async function createRazorpayOrder(items) {
   const amount = items.reduce((sum, i) => sum + i.price * i.qty, 0);
   try {
@@ -99,13 +117,9 @@ async function createRazorpayOrder(items) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount })
     });
-
     const order = await res.json();
 
-    if (!order.id) {
-      alert('Failed to create order.');
-      return;
-    }
+    if (!order.id) return alert('Failed to create order.');
 
     const options = {
       key: order.key,
@@ -116,18 +130,14 @@ async function createRazorpayOrder(items) {
       order_id: order.id,
       handler: function (response) {
         alert('Payment Successful! Payment ID: ' + response.razorpay_payment_id);
-        // Clear cart if it was a full checkout
+        // Clear cart if full checkout
         if (items.length === cart.length) {
           cart = [];
           updateCartCount();
           cartModal.classList.add('hidden');
         }
       },
-      prefill: {
-        name: 'Customer Name',
-        email: 'customer@example.com',
-        contact: '9999999999',
-      },
+      prefill: { name: '', email: '', contact: '' },
       theme: { color: '#d63384' }
     };
 
@@ -135,8 +145,10 @@ async function createRazorpayOrder(items) {
     rzp.open();
   } catch (err) {
     console.error(err);
-    alert('Something went wrong while creating payment.');
+    alert('Error creating payment.');
   }
 }
 
+// Initialize
 renderProducts();
+updateCartCount();
