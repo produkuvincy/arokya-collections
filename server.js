@@ -187,6 +187,46 @@ app.get("/orders", authenticateToken, async (req, res) => {
 });
 
 /* ======================================================
+   🔹 FETCH PRODUCTS (Demo Data or from MongoDB)
+====================================================== */
+app.get("/api/products", async (req, res) => {
+  try {
+    // Temporary static product list
+    const products = [
+      {
+        id: 1,
+        name: "Gold-Plated Necklace",
+        price: 1499,
+        image: "images/necklace.jpg",
+      },
+      {
+        id: 2,
+        name: "Silver Bracelet",
+        price: 799,
+        image: "images/bracelet.jpg",
+      },
+      {
+        id: 3,
+        name: "Diamond Ring",
+        price: 2499,
+        image: "images/ring.jpg",
+      },
+      {
+        id: 4,
+        name: "Pearl Earrings",
+        price: 999,
+        image: "images/earrings.jpg",
+      },
+    ];
+
+    res.json(products);
+  } catch (err) {
+    console.error("❌ Error fetching products:", err);
+    res.status(500).json({ message: "Error fetching products" });
+  }
+});
+
+/* ======================================================
    🔹 SERVE FRONTEND (for Render/Production)
 ====================================================== */
 app.get("*", (req, res) => {
