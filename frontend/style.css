@@ -206,6 +206,75 @@ nav button:hover {
   background: #ddd;
 }
 
+/* --- Auth Form Styling --- */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80vh;
+}
+
+.auth-card {
+  background: white;
+  padding: 2rem 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  width: 350px;
+  text-align: center;
+}
+
+.auth-card h2 {
+  color: #d63384;
+  margin-bottom: 1.5rem;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 0.6rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  outline: none;
+  transition: 0.3s;
+}
+
+.auth-card input:focus {
+  border-color: #d63384;
+  box-shadow: 0 0 5px rgba(214, 51, 132, 0.3);
+}
+
+.auth-card button {
+  width: 100%;
+  background: #d63384;
+  color: white;
+  border: none;
+  padding: 0.7rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.auth-card button:hover {
+  background: #a8236a;
+}
+
+.auth-card p {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.auth-card a {
+  color: #d63384;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-card a:hover {
+  text-decoration: underline;
+}
+
 /* --- Responsive --- */
 @media (max-width: 600px) {
   nav {
@@ -216,5 +285,9 @@ nav button:hover {
   .product-card {
     width: 100%;
     max-width: 300px;
+  }
+
+  .auth-card {
+    width: 90%;
   }
 }
