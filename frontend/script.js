@@ -1,192 +1,142 @@
-// -----------------------------
-// Global Elements
-// -----------------------------
-const signupBtn = document.getElementById("signupBtn");
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-const ordersSection = document.getElementById("ordersSection");
-const yourCartPopup = document.getElementById("cartPopup");
+// --- Product List ---
+const products = [
+  { id: 1, name: 'Gold Earrings', price: 1200, image: 'earrings.jpg' },
+  { id: 2, name: 'Silver Bangles', price: 900, image: 'bangles.jpg' },
+  { id: 3, name: 'Pearl Neckpiece', price: 2500, image: 'neckpiece.jpg' },
+  { id: 4, name: 'Diamond Bracelet', price: 3200, image: 'bracelet.jpg' },
+];
 
-// -----------------------------
-// Helper: Get stored JWT token
-// -----------------------------
-function getToken() {
-  return localStorage.getItem("authToken");
-}
+// --- DOM Elements ---
+const productContainer = document.getElementById('main-content');
+const cartBtn = document.getElementById('cart-btn');
+const cartModal = document.getElementById('cart-modal');
+const cartItemsList = document.getElementById('cart-items');
+const checkoutBtn = document.getElementById('checkout-btn');
+const closeCart = document.getElementById('close-cart');
 
-// -----------------------------
-// Check login state & update UI
-// -----------------------------
-function checkAuthStatus() {
-  const token = getToken();
-  if (token) {
-    // ✅ User logged in
-    signupBtn.style.display = "none";
-    loginBtn.style.display = "none";
-    logoutBtn.style.display = "inline-block";
-    ordersSection.style.display = "block";
-  } else {
-    // 🚫 Not logged in
-    signupBtn.style.display = "inline-block";
-    loginBtn.style.display = "inline-block";
-    logoutBtn.style.display = "none";
-    ordersSection.style.display = "none";
-  }
-}
+// --- State ---
+let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-// -----------------------------
-// SIGNUP: Create new user
-// -----------------------------
-async function handleSignup() {
-  const name = prompt("Enter your name:");
-  const email = prompt("Enter your email:");
-  const password = prompt("Enter a password:");
+// --- Render Products ---
+function renderProducts() {
+  productContainer.innerHTML = '<h2>Featured Products</h2><div class="product-grid"></div>';
+  const grid = productContainer.querySelector('.product-grid');
 
-  if (!name || !email || !password) return alert("All fields required!");
-
-  const res = await fetch("/signup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password }),
+  products.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'product-card';
+    div.innerHTML = `
+      <img src="${p.image}" alt="${p.name}">
+      <h3>${p.name}</h3>
+      <p>₹${p.price}</p>
+      <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
+    `;
+    grid.appendChild(div);
   });
 
-  const data = await res.json();
-  if (data.token) {
-    localStorage.setItem("authToken", data.token);
-    alert("✅ Account created successfully!");
-    checkAuthStatus();
-  } else {
-    alert(data.error || "Signup failed");
-  }
-}
-
-// -----------------------------
-// LOGIN: Existing user login
-// -----------------------------
-async function handleLogin() {
-  const email = prompt("Enter your email:");
-  const password = prompt("Enter your password:");
-
-  if (!email || !password) return alert("All fields required!");
-
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const data = await res.json();
-  if (data.token) {
-    localStorage.setItem("authToken", data.token);
-    alert("✅ Login successful!");
-    checkAuthStatus();
-  } else {
-    alert(data.error || "Login failed");
-  }
-}
-
-// -----------------------------
-// LOGOUT: Remove JWT
-// -----------------------------
-function handleLogout() {
-  localStorage.removeItem("authToken");
-  alert("Logged out successfully!");
-  checkAuthStatus();
-}
-
-// -----------------------------
-// FETCH ORDERS (Protected)
-// -----------------------------
-async function fetchOrders() {
-  const token = getToken();
-  if (!token) return alert("Please log in to view your orders.");
-
-  try {
-    const res = await fetch("/orders", {
-      headers: { Authorization: `Bearer ${token}` },
+  // Attach event listeners after rendering
+  document.querySelectorAll('.add-to-cart').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = parseInt(e.target.dataset.id);
+      addToCart(id);
     });
-    const data = await res.json();
-
-    if (data.orders) {
-      renderOrders(data.orders);
-    } else {
-      ordersSection.innerHTML = "<p>No orders found.</p>";
-    }
-  } catch (err) {
-    console.error("Error fetching orders:", err);
-    alert("Failed to fetch orders.");
-  }
+  });
 }
 
-// -----------------------------
-// Render Orders List
-// -----------------------------
-function renderOrders(orders) {
-  if (orders.length === 0) {
-    ordersSection.innerHTML = "<p>No orders found.</p>";
+// --- Add to Cart ---
+function addToCart(id) {
+  const item = products.find(p => p.id === id);
+  const existing = cart.find(p => p.id === id);
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    cart.push({ ...item, qty: 1 });
+  }
+  updateCartUI();
+  saveCart();
+}
+
+// --- Update Cart UI ---
+function updateCartUI() {
+  cartBtn.innerText = `Cart (${cart.reduce((sum, i) => sum + i.qty, 0)})`;
+}
+
+// --- Open Cart ---
+cartBtn.onclick = () => {
+  cartModal.classList.remove('hidden');
+  renderCartItems();
+};
+
+// --- Render Cart Items ---
+function renderCartItems() {
+  cartItemsList.innerHTML = '';
+  if (cart.length === 0) {
+    cartItemsList.innerHTML = '<li>Your cart is empty</li>';
     return;
   }
 
-  const html = orders
-    .map(
-      (order) => `
-      <div class="order-card">
-        <p><b>Order ID:</b> ${order.orderId}</p>
-        <p><b>Amount:</b> ₹${order.amount}</p>
-        <p><b>Status:</b> ${order.status}</p>
-        <p><b>Date:</b> ${new Date(order.createdAt).toLocaleString()}</p>
-      </div>
-    `
-    )
-    .join("");
-
-  ordersSection.innerHTML = html;
+  cart.forEach((item, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      ${item.name} - ₹${item.price} x ${item.qty}
+      <button onclick="removeItem(${item.id})">❌</button>
+    `;
+    cartItemsList.appendChild(li);
+  });
 }
 
-// -----------------------------
-// Hide cart popup on load
-// -----------------------------
-window.addEventListener("load", () => {
-  if (yourCartPopup) {
-    yourCartPopup.style.display = "none"; // Prevent auto-popup on load
-  }
-  checkAuthStatus(); // Update UI based on token
-});
-
-// -----------------------------
-// Button Event Listeners
-// -----------------------------
-if (signupBtn) signupBtn.addEventListener("click", handleSignup);
-if (loginBtn) loginBtn.addEventListener("click", handleLogin);
-if (logoutBtn) logoutBtn.addEventListener("click", handleLogout);
-
-// Optional: Fetch orders when "Your Orders" page is opened
-if (ordersSection) fetchOrders();
-
-// Fetch and display products
-async function loadProducts() {
-  try {
-    const response = await fetch("/api/products");
-    const products = await response.json();
-
-    const container = document.querySelector("#product-list");
-    container.innerHTML = ""; // Clear previous items
-
-    products.forEach((p) => {
-      const productCard = `
-        <div class="product-card">
-          <img src="${p.image}" alt="${p.name}" />
-          <h3>${p.name}</h3>
-          <p>₹${p.price}</p>
-          <button class="buy-btn" onclick="addToCart(${p.id})">Add to Cart</button>
-        </div>
-      `;
-      container.innerHTML += productCard;
-    });
-  } catch (error) {
-    console.error("Error loading products:", error);
-  }
+// --- Remove from Cart ---
+function removeItem(id) {
+  cart = cart.filter(i => i.id !== id);
+  saveCart();
+  renderCartItems();
+  updateCartUI();
 }
 
-// Run on page load
-window.onload = loadProducts;
+// --- Checkout ---
+checkoutBtn.onclick = async () => {
+  const amount = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  if (amount === 0) return alert("Your cart is empty!");
+
+  const res = await fetch('/create-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount }),
+  });
+  const order = await res.json();
+
+  const options = {
+    key: order.key,
+    amount: order.amount,
+    currency: 'INR',
+    name: 'Arokya Collections',
+    description: 'Jewelry Purchase',
+    order_id: order.id,
+    handler: function (response) {
+      alert('✅ Payment Successful! ID: ' + response.razorpay_payment_id);
+      cart = [];
+      saveCart();
+      updateCartUI();
+      cartModal.classList.add('hidden');
+    },
+    prefill: {
+      name: 'Customer',
+      email: 'customer@example.com',
+      contact: '9999999999',
+    },
+    theme: { color: '#d63384' },
+  };
+
+  const rzp = new Razorpay(options);
+  rzp.open();
+};
+
+// --- Helpers ---
+function saveCart() {
+  localStorage.setItem('cart', JSON.stringify(cart));
+}
+closeCart.onclick = () => cartModal.classList.add('hidden');
+
+// --- Initialize ---
+renderProducts();
+updateCartUI();
