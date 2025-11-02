@@ -162,3 +162,31 @@ if (logoutBtn) logoutBtn.addEventListener("click", handleLogout);
 
 // Optional: Fetch orders when "Your Orders" page is opened
 if (ordersSection) fetchOrders();
+
+// Fetch and display products
+async function loadProducts() {
+  try {
+    const response = await fetch("/api/products");
+    const products = await response.json();
+
+    const container = document.querySelector("#product-list");
+    container.innerHTML = ""; // Clear previous items
+
+    products.forEach((p) => {
+      const productCard = `
+        <div class="product-card">
+          <img src="${p.image}" alt="${p.name}" />
+          <h3>${p.name}</h3>
+          <p>₹${p.price}</p>
+          <button class="buy-btn" onclick="addToCart(${p.id})">Add to Cart</button>
+        </div>
+      `;
+      container.innerHTML += productCard;
+    });
+  } catch (error) {
+    console.error("Error loading products:", error);
+  }
+}
+
+// Run on page load
+window.onload = loadProducts;
