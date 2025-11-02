@@ -7,39 +7,39 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Header Section -->
   <header>
     <h1>Arokya Collections</h1>
     <nav>
-      <button id="login-btn">Login</button>
-      <button id="signup-btn">Sign Up</button>
-      <button id="orders-btn">Your Orders</button>
-      <button id="cart-btn">Cart (0)</button>
+      <!-- Auth Buttons -->
+      <button id="signupBtn">Sign Up</button>
+      <button id="loginBtn">Login</button>
+      <button id="logoutBtn" style="display: none;">Logout</button>
+
+      <!-- Other Navigation -->
+      <button id="ordersBtn">Your Orders</button>
+      <button id="cartBtn">Cart (0)</button>
     </nav>
   </header>
 
+  <!-- Main Content -->
   <main id="main-content">
-    <div id="auth-container" class="hidden">
-      <h2 id="auth-title">Login</h2>
-      <form id="auth-form">
-        <input type="text" id="name" placeholder="Name (Sign Up)" />
-        <input type="email" id="email" placeholder="Email" required />
-        <input type="password" id="password" placeholder="Password" required />
-        <button type="submit">Submit</button>
-      </form>
-      <button id="auth-close">Close</button>
-    </div>
+    <section id="product-list">
+      <h2>Featured Products</h2>
+      <div id="products">
+        <!-- Product cards will go here -->
+      </div>
+    </section>
 
-    <div id="orders-container" class="hidden">
+    <!-- Orders Section -->
+    <section id="ordersSection" style="display:none;">
       <h2>Your Orders</h2>
-      <ul id="orders-list"></ul>
-      <button id="orders-close">Close</button>
-    </div>
-
-    <div id="products"></div>
+      <!-- Orders will render here via script.js -->
+    </section>
   </main>
 
-  <!-- Cart Modal -->
-  <div id="cart-modal" class="hidden">
+  <!-- Cart Popup -->
+  <div id="cartPopup" class="cart-popup hidden">
     <div class="cart-content">
       <h2>Your Cart</h2>
       <ul id="cart-items"></ul>
@@ -48,7 +48,10 @@
     </div>
   </div>
 
+  <!-- Razorpay Integration -->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <!-- App Logic -->
   <script src="script.js"></script>
 </body>
 </html>
