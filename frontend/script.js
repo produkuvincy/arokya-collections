@@ -4,7 +4,7 @@
 // --- Global State ---
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 let token = localStorage.getItem("token");
-const API_URL = window.location.origin;
+const API_URL = "";
 
 // --- DOM Elements ---
 const main = document.getElementById("main-content");
