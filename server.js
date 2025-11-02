@@ -93,8 +93,34 @@ const products = [
 ];
 
 app.get("/api/products", (req, res) => {
-  res.json(products);
+  res.json([
+    {
+      _id: "1",
+      name: "Gold Necklace",
+      price: 1500,
+      image: "https://i.imgur.com/T5LzVqf.png",
+    },
+    {
+      _id: "2",
+      name: "Silver Bracelet",
+      price: 900,
+      image: "https://i.imgur.com/qe5k5ez.png",
+    },
+    {
+      _id: "3",
+      name: "Diamond Ring",
+      price: 2500,
+      image: "https://i.imgur.com/7uO3B5I.png",
+    },
+    {
+      _id: "4",
+      name: "Pearl Earrings",
+      price: 1200,
+      image: "https://i.imgur.com/MmWrVdU.png",
+    },
+  ]);
 });
+
 
 // ------------------------------
 // Auth Routes (Signup / Login)
