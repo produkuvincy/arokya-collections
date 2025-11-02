@@ -1,7 +1,9 @@
 {
   "name": "arokya-collections",
   "version": "1.0.0",
+  "description": "Arokya Collections - Jewelry Store with Razorpay and Authentication",
   "type": "module",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
@@ -17,5 +19,17 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
-  }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "razorpay",
+    "mongoose",
+    "express",
+    "ecommerce",
+    "arokya"
+  ],
+  "author": "Arokya Collections Team",
+  "license": "MIT"
 }
