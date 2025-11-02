@@ -1,97 +1,98 @@
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import path from "path";
-import Razorpay from "razorpay";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import cors from "cors";
+import path from "path";
 import { fileURLToPath } from "url";
+import Razorpay from "razorpay";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import User from "./models/User.js";
 
 dotenv.config();
-
 const app = express();
+
+// --- Basic setup ---
 app.use(express.json());
 app.use(cors());
 
-// ------------------------------
-// Paths
-// ------------------------------
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Serve frontend static files
-app.use(express.static(path.join(__dirname, "frontend")));
-
-// ------------------------------
-// MongoDB Connection
-// ------------------------------
-const mongoURI = process.env.MONGO_URI;
-if (!mongoURI) {
-  console.error("❌ MONGO_URI not found in .env");
-  process.exit(1);
-}
-
+// --- MongoDB ---
 mongoose
-  .connect(mongoURI)
+  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+  .catch((err) => console.error("❌ MongoDB error:", err.message));
 
-// ------------------------------
-// Razorpay Config
-// ------------------------------
+// --- Razorpay ---
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// ------------------------------
-// JWT Middleware
-// ------------------------------
-const auth = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-
+// --- Auth Middleware ---
+function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ message: "Unauthorized" });
+  const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
-  } catch {
-    return res.status(403).json({ error: "Invalid token" });
+  } catch (err) {
+    res.status(401).json({ message: "Invalid token" });
   }
-};
+}
 
-// ------------------------------
-// Products Route
-// ------------------------------
-const products = [
-  {
-    id: "1",
-    name: "Gold Necklace",
-    description: "Elegant 22K gold necklace perfect for occasions.",
-    price: 35999,
-    image:
-      "https://arokya-collections.s3.ap-south-1.amazonaws.com/products/gold-necklace.png",
-  },
-  {
-    id: "2",
-    name: "Silver Earrings",
-    description: "Beautiful handcrafted silver earrings.",
-    price: 2499,
-    image:
-      "https://arokya-collections.s3.ap-south-1.amazonaws.com/products/silver-earrings.png",
-  },
-  {
-    id: "3",
-    name: "Diamond Ring",
-    description: "Sparkling diamond ring set in platinum.",
-    price: 89999,
-    image:
-      "https://arokya-collections.s3.ap-south-1.amazonaws.com/products/diamond-ring.png",
-  },
-];
+// --- Auth Routes ---
+app.post("/api/signup", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: "User already exists" });
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await User.create({ name, email, password: hashed });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    res.json({ token });
+  } catch (err) {
+    res.status(500).json({ message: "Signup failed" });
+  }
+});
 
+app.post("/api/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(400).json({ message: "Invalid password" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    res.json({ token });
+  } catch (err) {
+    res.status(500).json({ message: "Login failed" });
+  }
+});
+
+// --- Orders ---
+app.post("/api/orders/create", verifyToken, async (req, res) => {
+  try {
+    const options = {
+      amount: req.body.amount * 100,
+      currency: "INR",
+      receipt: "receipt_order_" + Date.now(),
+    };
+    const order = await razorpay.orders.create(options);
+    res.json(order);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Order creation failed" });
+  }
+});
+
+app.get("/api/orders", verifyToken, async (req, res) => {
+  const user = await User.findById(req.user.id);
+  res.json(user.orders || []);
+});
+
+// --- Static Products (Frontend Fetches These) ---
 app.get("/api/products", (req, res) => {
   res.json([
     {
@@ -121,103 +122,13 @@ app.get("/api/products", (req, res) => {
   ]);
 });
 
+// --- Serve Frontend (Render Static Folder) ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, "frontend")));
+app.get("*", (req, res) =>
+  res.sendFile(path.join(__dirname, "frontend", "index.html"))
+);
 
-// ------------------------------
-// Auth Routes (Signup / Login)
-// ------------------------------
-app.post("/api/signup", async (req, res) => {
-  const { name, email, password } = req.body;
-
-  try {
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ error: "User already exists" });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashedPassword });
-
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.json({ token, user: { name: user.name, email: user.email } });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Signup failed" });
-  }
-});
-
-app.post("/api/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: "User not found" });
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ error: "Incorrect password" });
-
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.json({ token, user: { name: user.name, email: user.email } });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Login failed" });
-  }
-});
-
-// ------------------------------
-// Razorpay Order Creation
-// ------------------------------
-app.post("/api/create-order", async (req, res) => {
-  try {
-    const options = {
-      amount: req.body.amount * 100, // amount in paise
-      currency: "INR",
-      receipt: "order_" + Date.now(),
-    };
-    const order = await razorpay.orders.create(options);
-    res.json({ id: order.id, amount: order.amount, key: process.env.RAZORPAY_KEY_ID });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Order creation failed" });
-  }
-});
-
-// ------------------------------
-// Orders (Mock)
-// ------------------------------
-app.get("/api/orders", async (req, res) => {
-  // In a real app, you'd fetch from DB
-  const mockOrders = [
-    {
-      orderId: "order_123",
-      amount: 12000,
-      status: "paid",
-    },
-    {
-      orderId: "order_456",
-      amount: 5500,
-      status: "shipped",
-    },
-  ];
-  res.json(mockOrders);
-});
-
-// ------------------------------
-// Serve Frontend (Render)
-// ------------------------------
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "frontend", "index.html"));
-});
-
-// ------------------------------
-// Start Server
-// ------------------------------
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
