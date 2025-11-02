@@ -1,239 +1,243 @@
-// ------------------------------
-// Arokya Collections Frontend
-// ------------------------------
+// --- FRONTEND SCRIPT FOR AROKYA COLLECTIONS ---
+// Handles product display, cart logic, user authentication, and Razorpay checkout.
 
-// Elements from the DOM
-const mainContent = document.getElementById("main-content");
+// --- Global State ---
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+let token = localStorage.getItem("token");
+const API_URL = window.location.origin;
+
+// --- DOM Elements ---
+const main = document.getElementById("main-content");
 const cartBtn = document.getElementById("cart-btn");
-const cartModal = document.getElementById("cart-modal");
-const cartItemsList = document.getElementById("cart-items");
-const checkoutBtn = document.getElementById("checkout-btn");
-const closeCart = document.getElementById("close-cart");
 const loginBtn = document.getElementById("login-btn");
 const signupBtn = document.getElementById("signup-btn");
 const ordersBtn = document.getElementById("orders-btn");
 
-let cart = JSON.parse(localStorage.getItem("cart")) || [];
-let user = JSON.parse(localStorage.getItem("user")) || null;
-
-// ------------------------------
-// Helper: Update Cart Button
-// ------------------------------
-function updateCartCount() {
-  cartBtn.innerText = `Cart (${cart.length})`;
-}
-
-// ------------------------------
-// Render Products from API
-// ------------------------------
+// --- Load Products ---
 async function loadProducts() {
   try {
-    const res = await fetch("/api/products"); // ✅ works on Render too
-    if (!res.ok) throw new Error("Failed to load products");
+    const res = await fetch(`${API_URL}/api/products`);
+    if (!res.ok) throw new Error("Failed to fetch products");
     const products = await res.json();
 
-    mainContent.innerHTML = `
-      <h2 style="text-align:center;">Featured Products</h2>
+    main.innerHTML = `
+      <h2>Featured Products</h2>
       <div class="product-grid">
         ${products
           .map(
             (p) => `
-            <div class="product-card">
-              <img src="${p.image}" alt="${p.name}" class="product-img">
-              <h3>${p.name}</h3>
-              <p>${p.description}</p>
-              <p><strong>₹${p.price}</strong></p>
-              <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})">
-                Add to Cart
-              </button>
-            </div>`
+          <div class="product-card">
+            <img src="${p.image}" alt="${p.name}" />
+            <h3>${p.name}</h3>
+            <p>₹${p.price}</p>
+            <button onclick="addToCart('${p._id}', '${p.name}', ${p.price}, '${p.image}')">Add to Cart</button>
+          </div>
+        `
           )
           .join("")}
       </div>
     `;
   } catch (err) {
-    console.error("Error loading products:", err);
-    mainContent.innerHTML =
-      "<p style='color:red;text-align:center;'>⚠️ Unable to load products. Please refresh.</p>";
+    console.error(err);
+    main.innerHTML = `<p style="color:red;">Failed to load products. Please try again later.</p>`;
   }
 }
 
-// ------------------------------
-// Add to Cart
-// ------------------------------
-function addToCart(id, name, price) {
-  const existing = cart.find((item) => item.id === id);
-  if (existing) {
-    existing.qty += 1;
+// --- Add to Cart ---
+window.addToCart = function (id, name, price, image) {
+  const item = cart.find((i) => i.id === id);
+  if (item) {
+    item.qty += 1;
   } else {
-    cart.push({ id, name, price, qty: 1 });
+    cart.push({ id, name, price, image, qty: 1 });
   }
   localStorage.setItem("cart", JSON.stringify(cart));
-  updateCartCount();
+  updateCartButton();
   alert(`${name} added to cart!`);
-}
-
-// ------------------------------
-// Show Cart Modal
-// ------------------------------
-cartBtn.onclick = () => {
-  cartModal.classList.remove("hidden");
-  renderCart();
 };
 
-closeCart.onclick = () => cartModal.classList.add("hidden");
-
-// ------------------------------
-// Render Cart Items
-// ------------------------------
-function renderCart() {
-  cartItemsList.innerHTML = "";
-  if (cart.length === 0) {
-    cartItemsList.innerHTML = "<li>Your cart is empty.</li>";
-    return;
-  }
-
-  cart.forEach((item) => {
-    const li = document.createElement("li");
-    li.textContent = `${item.name} (x${item.qty}) - ₹${item.price * item.qty}`;
-    cartItemsList.appendChild(li);
-  });
+// --- Update Cart Button Count ---
+function updateCartButton() {
+  const count = cart.reduce((sum, i) => sum + i.qty, 0);
+  cartBtn.textContent = `Cart (${count})`;
 }
 
-// ------------------------------
-// Checkout with Razorpay
-// ------------------------------
-checkoutBtn.onclick = async () => {
-  if (!user) {
-    alert("Please log in to proceed with checkout!");
-    return;
-  }
+// --- Load Cart Page ---
+cartBtn.addEventListener("click", () => {
+  main.innerHTML = `
+    <h2>Your Cart</h2>
+    ${
+      cart.length
+        ? `<ul class="cart-list">
+            ${cart
+              .map(
+                (item, i) => `
+              <li>
+                <img src="${item.image}" alt="${item.name}" />
+                <span>${item.name} (x${item.qty}) - ₹${item.price * item.qty}</span>
+                <button onclick="removeFromCart(${i})">Remove</button>
+              </li>
+            `
+              )
+              .join("")}
+          </ul>
+          <button onclick="checkout()">Checkout</button>`
+        : `<p>Your cart is empty.</p>`
+    }
+  `;
+});
 
-  const amount = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-  if (amount <= 0) return alert("Your cart is empty!");
+// --- Remove Item from Cart ---
+window.removeFromCart = function (index) {
+  cart.splice(index, 1);
+  localStorage.setItem("cart", JSON.stringify(cart));
+  updateCartButton();
+  cartBtn.click();
+};
 
+// --- Checkout with Razorpay ---
+window.checkout = async function () {
   try {
-    const res = await fetch("/api/create-order", {
+    const amount = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+    if (!amount) return alert("Your cart is empty!");
+
+    const res = await fetch(`${API_URL}/api/orders/create`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({ amount }),
     });
     const order = await res.json();
 
+    if (!order.id) throw new Error("Order creation failed");
+
     const options = {
-      key: order.key,
+      key: "<YOUR_RAZORPAY_KEY_ID>",
       amount: order.amount,
       currency: "INR",
       name: "Arokya Collections",
       description: "Jewelry Purchase",
       order_id: order.id,
       handler: function (response) {
-        alert("✅ Payment Successful! ID: " + response.razorpay_payment_id);
+        alert("Payment successful!");
         cart = [];
         localStorage.removeItem("cart");
-        updateCartCount();
-        renderCart();
+        updateCartButton();
       },
       prefill: {
-        name: user.name || "Customer",
-        email: user.email || "example@email.com",
+        name: "Customer",
+        email: "customer@example.com",
       },
-      theme: { color: "#d63384" },
+      theme: { color: "#f06292" },
     };
 
     const rzp = new Razorpay(options);
     rzp.open();
   } catch (err) {
-    console.error("Checkout error:", err);
-    alert("❌ Payment failed. Please try again.");
+    console.error(err);
+    alert("Checkout failed. Please try again.");
   }
 };
 
-// ------------------------------
-// Login / Logout Logic
-// ------------------------------
-loginBtn.onclick = async () => {
-  const email = prompt("Enter email:");
-  const password = prompt("Enter password:");
+// --- Login / Signup UI ---
+loginBtn.addEventListener("click", () => showAuthForm("login"));
+signupBtn.addEventListener("click", () => showAuthForm("signup"));
 
-  const res = await fetch("/api/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const data = await res.json();
-  if (data.token) {
-    user = data.user;
-    localStorage.setItem("user", JSON.stringify(user));
-    alert("✅ Logged in successfully!");
-    updateAuthButtons();
-  } else {
-    alert("❌ Login failed: " + (data.error || "Unknown error"));
-  }
-};
-
-signupBtn.onclick = async () => {
-  const name = prompt("Enter your name:");
-  const email = prompt("Enter email:");
-  const password = prompt("Enter password:");
-
-  const res = await fetch("/api/signup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password }),
-  });
-
-  const data = await res.json();
-  if (data.token) {
-    user = data.user;
-    localStorage.setItem("user", JSON.stringify(user));
-    alert("🎉 Account created successfully!");
-    updateAuthButtons();
-  } else {
-    alert("❌ Signup failed: " + (data.error || "Unknown error"));
-  }
-};
-
-ordersBtn.onclick = async () => {
-  if (!user) {
-    alert("Please login to view your orders!");
-    return;
-  }
-  const res = await fetch(`/api/orders?email=${user.email}`);
-  const orders = await res.json();
-
-  mainContent.innerHTML = `
-    <h2>Your Orders</h2>
-    <ul>
-      ${orders
-        .map(
-          (o) =>
-            `<li>Order ID: ${o.orderId} | Amount: ₹${o.amount / 100} | Status: ${o.status}</li>`
-        )
-        .join("")}
-    </ul>
+function showAuthForm(type) {
+  main.innerHTML = `
+    <h2>${type === "login" ? "Login" : "Sign Up"}</h2>
+    <form id="auth-form">
+      ${type === "signup" ? '<input type="text" id="name" placeholder="Name" required />' : ""}
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">${type === "login" ? "Login" : "Sign Up"}</button>
+    </form>
   `;
-};
+  document
+    .getElementById("auth-form")
+    .addEventListener("submit", (e) => handleAuth(e, type));
+}
 
-// ------------------------------
-// Update Buttons (Hide signup/login if logged in)
-// ------------------------------
-function updateAuthButtons() {
-  if (user) {
-    loginBtn.style.display = "none";
-    signupBtn.style.display = "none";
-    ordersBtn.style.display = "inline-block";
-  } else {
-    loginBtn.style.display = "inline-block";
-    signupBtn.style.display = "inline-block";
-    ordersBtn.style.display = "none";
+// --- Handle Login / Signup ---
+async function handleAuth(e, type) {
+  e.preventDefault();
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const name = type === "signup" ? document.getElementById("name").value : null;
+
+  try {
+    const res = await fetch(`${API_URL}/api/${type}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
+    });
+    const data = await res.json();
+    if (!data.token) throw new Error(data.message || "Failed");
+
+    localStorage.setItem("token", data.token);
+    token = data.token;
+    updateAuthUI();
+    loadProducts();
+  } catch (err) {
+    alert(err.message);
   }
 }
 
-// ------------------------------
-// Initial Load
-// ------------------------------
-updateAuthButtons();
-updateCartCount();
+// --- Orders Page ---
+ordersBtn.addEventListener("click", async () => {
+  if (!token) return alert("Please login to view your orders.");
+  try {
+    const res = await fetch(`${API_URL}/api/orders`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const orders = await res.json();
+
+    main.innerHTML = `
+      <h2>Your Orders</h2>
+      ${
+        orders.length
+          ? `<ul>${orders
+              .map(
+                (o) => `
+              <li>
+                <strong>Order ID:</strong> ${o.orderId}<br/>
+                <strong>Amount:</strong> ₹${o.amount}<br/>
+                <strong>Status:</strong> ${o.status}<br/>
+                <strong>Date:</strong> ${new Date(o.createdAt).toLocaleString()}
+              </li>
+            `
+              )
+              .join("")}</ul>`
+          : "<p>No orders found.</p>"
+      }
+    `;
+  } catch (err) {
+    alert("Failed to fetch orders.");
+  }
+});
+
+// --- Update UI on Auth ---
+function updateAuthUI() {
+  if (token) {
+    signupBtn.style.display = "none";
+    loginBtn.textContent = "Logout";
+    loginBtn.onclick = () => {
+      localStorage.removeItem("token");
+      token = null;
+      signupBtn.style.display = "inline-block";
+      loginBtn.textContent = "Login";
+      loginBtn.onclick = null;
+      loadProducts();
+    };
+  } else {
+    signupBtn.style.display = "inline-block";
+    loginBtn.textContent = "Login";
+  }
+}
+
+// --- Initialize Page ---
+updateCartButton();
+updateAuthUI();
 loadProducts();
