@@ -11,23 +11,28 @@ let cart = [];
 async function loadProducts() {
   try {
     const res = await fetch("/api/products");
+    if (!res.ok) throw new Error("Failed to load products");
     const products = await res.json();
 
-    mainContent.innerHTML = "";
-    products.forEach((p) => {
-      const div = document.createElement("div");
-      div.className = "product";
-      div.innerHTML = `
-        <img src="${p.image}" alt="${p.name}" width="150">
-        <h3>${p.name}</h3>
-        <p>₹${p.price}</p>
-        <button onclick="addToCart(${p.id}, '${p.name}', ${p.price})">Add to Cart</button>
-      `;
-      mainContent.appendChild(div);
-    });
-  } catch (error) {
-    console.error("Error loading products:", error);
-    mainContent.innerHTML = "<p>⚠️ Failed to load products.</p>";
+    const container = document.getElementById("main-content");
+    container.innerHTML = `
+      <h2>Featured Products</h2>
+      <div class="product-grid">
+        ${products
+          .map(
+            p => `
+            <div class="product-card">
+              <img src="${p.image}" alt="${p.name}">
+              <h3>${p.name}</h3>
+              <p>₹${p.price}</p>
+              <button onclick="addToCart('${p._id}', '${p.name}', ${p.price})">Add to Cart</button>
+            </div>`
+          )
+          .join("")}
+      </div>
+    `;
+  } catch (err) {
+    console.error("Error loading products:", err);
   }
 }
 
