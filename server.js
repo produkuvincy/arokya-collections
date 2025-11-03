@@ -11,10 +11,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ---------- Serve Frontend ----------
+// ---------- Static File Setup ----------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, "public"))); // folder with index.html
+
+// ✅ Serve everything inside the "public" folder
+app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- Razorpay Setup ----------
 const razorpay = new Razorpay({
@@ -22,7 +24,7 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// ---------- Get Products ----------
+// ---------- API: Get Products ----------
 app.get("/api/products", (req, res) => {
   res.json([
     { _id: "1", name: "Gold Necklace", price: 2500, image: "https://via.placeholder.com/150" },
@@ -32,7 +34,7 @@ app.get("/api/products", (req, res) => {
   ]);
 });
 
-// ---------- Create Razorpay Order ----------
+// ---------- API: Create Razorpay Order ----------
 app.post("/api/orders/create", async (req, res) => {
   try {
     const { amount } = req.body;
@@ -42,12 +44,11 @@ app.post("/api/orders/create", async (req, res) => {
     }
 
     const order = await razorpay.orders.create({
-      amount: amount * 100, // paise
+      amount: amount * 100,
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     });
 
-    // ✅ Send back order + key
     res.json({
       id: order.id,
       amount: order.amount,
@@ -58,6 +59,11 @@ app.post("/api/orders/create", async (req, res) => {
     console.error("Error creating Razorpay order:", err);
     res.status(500).json({ error: "Failed to create Razorpay order" });
   }
+});
+
+// ---------- Serve index.html for all unknown routes ----------
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // ---------- Start Server ----------
