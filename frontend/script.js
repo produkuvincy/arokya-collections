@@ -93,11 +93,12 @@ checkoutBtn.addEventListener("click", async () => {
     }
 
     // Create order on server
-    const res = await fetch(`${API_BASE}/api/create-order`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: total }),
-    });
+    const res = await fetch(`${API_BASE}/api/orders/create`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ amount: total }),
+});
+
 
     const order = await res.json();
 
