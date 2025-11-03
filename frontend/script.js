@@ -1,25 +1,23 @@
-const API_BASE = window.location.origin; // same domain for Render
-
-// ---------- DOM ELEMENTS ----------
+const API_BASE = window.location.origin; // Use same domain (Render or local)
 const productsContainer = document.getElementById("products");
 const cartModal = document.getElementById("cart-modal");
 const cartItemsContainer = document.getElementById("cart-items");
 const checkoutBtn = document.getElementById("checkout-btn");
 const closeCartBtn = document.getElementById("close-cart");
 const cartCountBtn = document.getElementById("cart-count");
-
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
 // ---------- LOAD PRODUCTS ----------
 async function loadProducts() {
   try {
     const res = await fetch(`${API_BASE}/api/products`);
+    if (!res.ok) throw new Error("Failed to fetch products");
     const products = await res.json();
 
     productsContainer.innerHTML = products
       .map(
         (p) => `
-        <div class="product-card bg-white shadow-lg rounded-2xl p-4 flex flex-col items-center">
+        <div class="product-card bg-white shadow-lg rounded-2xl p-4 flex flex-col items-center transition hover:shadow-2xl">
           <img src="${p.image}" alt="${p.name}" class="rounded-lg mb-4 w-40 h-40 object-cover" />
           <h3 class="font-semibold">${p.name}</h3>
           <p class="text-pink-700 font-bold mb-3">₹${p.price}</p>
@@ -34,8 +32,8 @@ async function loadProducts() {
       )
       .join("");
   } catch (err) {
-    console.error("Failed to load products:", err);
-    productsContainer.innerHTML = `<p class="text-red-500">⚠️ Failed to load products. Please refresh.</p>`;
+    console.error("❌ Failed to load products:", err);
+    productsContainer.innerHTML = `<p class="text-red-500">Failed to load products. Please refresh.</p>`;
   }
 }
 
@@ -67,15 +65,14 @@ function updateCartCount() {
 }
 
 // ---------- SHOW CART ----------
+cartCountBtn.addEventListener("click", showCart);
+
 function showCart() {
   if (cart.length === 0) {
     cartItemsContainer.innerHTML = `<p>Your cart is empty.</p>`;
   } else {
     cartItemsContainer.innerHTML = cart
-      .map(
-        (item) =>
-          `<p>${item.name} - ₹${item.price} × ${item.qty}</p>`
-      )
+      .map((item) => `<p>${item.name} - ₹${item.price} × ${item.qty}</p>`)
       .join("");
   }
   cartModal.classList.remove("hidden");
@@ -92,11 +89,11 @@ checkoutBtn.addEventListener("click", async () => {
     const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
     if (total === 0) {
-      alert("🛒 Your cart is empty!");
+      alert("Your cart is empty!");
       return;
     }
 
-    // ✅ Create Razorpay order on backend
+    // Create order on server
     const res = await fetch(`${API_BASE}/api/orders/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -104,35 +101,28 @@ checkoutBtn.addEventListener("click", async () => {
     });
 
     if (!res.ok) {
-      throw new Error("Order creation failed");
+      throw new Error("Failed to create order");
     }
 
     const order = await res.json();
-
     if (!order.id) {
-      alert("⚠️ Failed to create Razorpay order.");
+      alert("Failed to create Razorpay order.");
       return;
     }
 
-    // ✅ Razorpay Checkout Options
     const options = {
-      key: "rzp_test_XXXXXXXXXXXX", // 🔑 replace with your Razorpay key
+      key: "rzp_test_XXXXXXXXXXXX", // Replace with your actual key
       amount: order.amount,
       currency: "INR",
       name: "Arokya Collections",
       description: "Jewellery Purchase",
       order_id: order.id,
       handler: function (response) {
-        alert(`✅ Payment Successful!\nPayment ID: ${response.razorpay_payment_id}`);
+        alert(`✅ Payment Successful! Payment ID: ${response.razorpay_payment_id}`);
         localStorage.removeItem("cart");
         cart = [];
         updateCartCount();
         cartModal.classList.add("hidden");
-      },
-      modal: {
-        ondismiss: function () {
-          alert("❌ Payment was cancelled.");
-        },
       },
       theme: {
         color: "#e91e63",
@@ -142,8 +132,8 @@ checkoutBtn.addEventListener("click", async () => {
     const rzp1 = new Razorpay(options);
     rzp1.open();
   } catch (err) {
-    console.error("Checkout Error:", err);
-    alert("Oops! Something went wrong.\nPayment Failed.");
+    console.error("❌ Checkout Error:", err);
+    alert("Something went wrong during checkout.");
   }
 });
 
