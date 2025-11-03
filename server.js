@@ -6,53 +6,33 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 dotenv.config();
+
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// --- Setup paths for serving frontend ---
+// ---------- Serve Frontend ----------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, "public"))); // folder with index.html
 
-// --- Razorpay setup ---
+// ---------- Razorpay Setup ----------
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// --- API ROUTES ---
-
-// ✅ PRODUCTS API
+// ---------- Get Products ----------
 app.get("/api/products", (req, res) => {
   res.json([
-    {
-      _id: "1",
-      name: "Gold Necklace",
-      price: 1500,
-      image: "https://i.imgur.com/T5LzVqf.png",
-    },
-    {
-      _id: "2",
-      name: "Silver Bracelet",
-      price: 900,
-      image: "https://i.imgur.com/qe5k5ez.png",
-    },
-    {
-      _id: "3",
-      name: "Diamond Ring",
-      price: 2500,
-      image: "https://i.imgur.com/7uO3B5I.png",
-    },
-    {
-      _id: "4",
-      name: "Pearl Earrings",
-      price: 1200,
-      image: "https://i.imgur.com/MmWrVdU.png",
-    },
+    { _id: "1", name: "Gold Necklace", price: 2500, image: "https://via.placeholder.com/150" },
+    { _id: "2", name: "Silver Bracelet", price: 1200, image: "https://via.placeholder.com/150" },
+    { _id: "3", name: "Diamond Ring", price: 5000, image: "https://via.placeholder.com/150" },
+    { _id: "4", name: "Pearl Earrings", price: 800, image: "https://via.placeholder.com/150" },
   ]);
 });
 
-// ✅ CREATE ORDER API (for Razorpay checkout)
+// ---------- Create Razorpay Order ----------
 app.post("/api/orders/create", async (req, res) => {
   try {
     const { amount } = req.body;
@@ -62,32 +42,24 @@ app.post("/api/orders/create", async (req, res) => {
     }
 
     const order = await razorpay.orders.create({
-      amount: amount * 100, // convert to paise
+      amount: amount * 100, // paise
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     });
 
+    // ✅ Send back order + key
     res.json({
       id: order.id,
       amount: order.amount,
       currency: order.currency,
-      key: process.env.RAZORPAY_KEY_ID, // 👈 send key to frontend
+      key: process.env.RAZORPAY_KEY_ID,
     });
   } catch (err) {
-    console.error("Error creating order:", err);
+    console.error("Error creating Razorpay order:", err);
     res.status(500).json({ error: "Failed to create Razorpay order" });
   }
 });
 
-
-// --- Serve frontend files (index.html, script.js, etc.) ---
-app.use(express.static(path.join(__dirname, "frontend")));
-
-// Fallback route for SPA (React-style) — optional but safe
-app.get("*", (req, res) =>
-  res.sendFile(path.join(__dirname, "frontend", "index.html"))
-);
-
-// --- Start Server ---
+// ---------- Start Server ----------
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
