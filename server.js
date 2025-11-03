@@ -56,22 +56,29 @@ app.get("/api/products", (req, res) => {
 app.post("/api/orders/create", async (req, res) => {
   try {
     const { amount } = req.body;
+
     if (!amount || amount <= 0) {
       return res.status(400).json({ error: "Invalid amount" });
     }
 
     const order = await razorpay.orders.create({
-      amount: amount * 100, // amount in paise
+      amount: amount * 100, // convert to paise
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     });
 
-    res.json(order);
+    res.json({
+      id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key: process.env.RAZORPAY_KEY_ID, // 👈 send key to frontend
+    });
   } catch (err) {
-    console.error("❌ Error creating Razorpay order:", err);
+    console.error("Error creating order:", err);
     res.status(500).json({ error: "Failed to create Razorpay order" });
   }
 });
+
 
 // --- Serve frontend files (index.html, script.js, etc.) ---
 app.use(express.static(path.join(__dirname, "frontend")));
