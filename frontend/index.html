@@ -48,6 +48,24 @@
       #cart-modal.hidden {
         display: none;
       }
+
+      #cart-items {
+  max-height: 300px;
+  overflow-y: auto;
+  text-align: left;
+}
+#cart-items::-webkit-scrollbar {
+  width: 6px;
+}
+#cart-items::-webkit-scrollbar-thumb {
+  background-color: #e91e63;
+  border-radius: 3px;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
     </style>
   </head>
 
