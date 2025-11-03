@@ -1,55 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Arokya Collections</title>
+  <!-- IMPORTANT: relative path to stylesheet in same folder -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Header Section -->
   <header>
     <h1>Arokya Collections</h1>
     <nav>
-      <!-- Auth Buttons -->
       <button id="login-btn">Login</button>
       <button id="signup-btn">Sign Up</button>
-      <button id="logoutBtn" style="display: none;">Logout</button>
-
-      <!-- Other Navigation -->
       <button id="orders-btn">Your Orders</button>
       <button id="cart-btn">Cart (0)</button>
     </nav>
   </header>
 
-  <!-- Main Content -->
   <main id="main-content">
-    <section id="product-list">
-      <h2>Featured Products</h2>
-      <div id="product-list" class="product-grid"></div>
-    </section>
-
-    <!-- Orders Section -->
-    <section id="ordersSection" style="display:none;">
-      <h2>Your Orders</h2>
-      <!-- Orders will render here via script.js -->
-    </section>
+    <!-- Products will be injected here -->
+    <h2>Featured Products</h2>
   </main>
 
-  <!-- Cart Popup -->
+  <!-- Cart modal -->
   <div id="cart-modal" class="hidden">
-  <div class="cart-content">
-    <h2>Your Cart</h2>
-    <ul id="cart-items"></ul>
-    <button id="checkout-btn">Checkout</button>
-    <button id="close-cart">Close</button>
-  </div>
+    <div class="cart-content">
+      <h2>Your Cart</h2>
+      <ul id="cart-items"></ul>
+      <button id="checkout-btn">Checkout</button>
+      <button id="close-cart">Close</button>
+    </div>
   </div>
 
-  <!-- Razorpay Integration -->
+  <!-- load Razorpay and then our script at end of body so DOM exists -->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-
-  <!-- App Logic -->
   <script src="script.js"></script>
 </body>
 </html>
