@@ -83,7 +83,55 @@ closeCartBtn.addEventListener("click", () => {
 
 // ---------- CHECKOUT ----------
 checkoutBtn.addEventListener("click", async () => {
-  alert("Checkout feature coming soon!");
+  try {
+    // Calculate total cart amount
+    const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+    if (total === 0) {
+      alert("Your cart is empty!");
+      return;
+    }
+
+    // Create order on server
+    const res = await fetch(`${API_BASE}/api/create-order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: total }),
+    });
+
+    const order = await res.json();
+
+    if (!order.id) {
+      alert("Failed to create order.");
+      return;
+    }
+
+    // Razorpay Checkout Options
+    const options = {
+      key: "rzp_test_XXXXXXXXXXXX", // Replace with your actual RAZORPAY_KEY_ID
+      amount: order.amount,
+      currency: "INR",
+      name: "Arokya Collections",
+      description: "Jewellery Purchase",
+      order_id: order.id,
+      handler: function (response) {
+        alert("✅ Payment Successful! Payment ID: " + response.razorpay_payment_id);
+        localStorage.removeItem("cart");
+        cart = [];
+        updateCartCount();
+        cartModal.classList.add("hidden");
+      },
+      theme: {
+        color: "#e91e63",
+      },
+    };
+
+    const rzp1 = new Razorpay(options);
+    rzp1.open();
+  } catch (err) {
+    console.error("Checkout Error:", err);
+    alert("Something went wrong during checkout.");
+  }
 });
 
 // ---------- INIT ----------
