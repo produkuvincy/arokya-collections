@@ -1,10 +1,13 @@
-const API_BASE = window.location.origin; // Same domain for Render
+const API_BASE = window.location.origin; // same domain for Render
+
+// ---------- DOM ELEMENTS ----------
 const productsContainer = document.getElementById("products");
 const cartModal = document.getElementById("cart-modal");
 const cartItemsContainer = document.getElementById("cart-items");
 const checkoutBtn = document.getElementById("checkout-btn");
 const closeCartBtn = document.getElementById("close-cart");
 const cartCountBtn = document.getElementById("cart-count");
+
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
 // ---------- LOAD PRODUCTS ----------
@@ -32,7 +35,7 @@ async function loadProducts() {
       .join("");
   } catch (err) {
     console.error("Failed to load products:", err);
-    productsContainer.innerHTML = `<p class="text-red-500">Failed to load products. Please refresh.</p>`;
+    productsContainer.innerHTML = `<p class="text-red-500">⚠️ Failed to load products. Please refresh.</p>`;
   }
 }
 
@@ -45,12 +48,14 @@ document.addEventListener("click", (e) => {
       price: parseFloat(e.target.dataset.price),
       qty: 1,
     };
+
     const existing = cart.find((item) => item.id === product.id);
     if (existing) {
       existing.qty++;
     } else {
       cart.push(product);
     }
+
     localStorage.setItem("cart", JSON.stringify(cart));
     updateCartCount();
   }
@@ -84,59 +89,33 @@ closeCartBtn.addEventListener("click", () => {
 // ---------- CHECKOUT ----------
 checkoutBtn.addEventListener("click", async () => {
   try {
-    // Calculate total cart amount
     const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
     if (total === 0) {
-      alert("Your cart is empty!");
+      alert("🛒 Your cart is empty!");
       return;
     }
 
-    // Create order on server
+    // ✅ Create Razorpay order on backend
     const res = await fetch(`${API_BASE}/api/orders/create`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ amount: total }),
-});
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: total }),
+    });
 
+    if (!res.ok) {
+      throw new Error("Order creation failed");
+    }
 
     const order = await res.json();
 
     if (!order.id) {
-      alert("Failed to create order.");
+      alert("⚠️ Failed to create Razorpay order.");
       return;
     }
 
-    // Razorpay Checkout Options
+    // ✅ Razorpay Checkout Options
     const options = {
-      key: "rzp_test_XXXXXXXXXXXX", // Replace with your actual RAZORPAY_KEY_ID
+      key: "rzp_test_XXXXXXXXXXXX", // 🔑 replace with your Razorpay key
       amount: order.amount,
       currency: "INR",
-      name: "Arokya Collections",
-      description: "Jewellery Purchase",
-      order_id: order.id,
-      handler: function (response) {
-        alert("✅ Payment Successful! Payment ID: " + response.razorpay_payment_id);
-        localStorage.removeItem("cart");
-        cart = [];
-        updateCartCount();
-        cartModal.classList.add("hidden");
-      },
-      theme: {
-        color: "#e91e63",
-      },
-    };
-
-    const rzp1 = new Razorpay(options);
-    rzp1.open();
-  } catch (err) {
-    console.error("Checkout Error:", err);
-    alert("Something went wrong during checkout.");
-  }
-});
-
-// ---------- INIT ----------
-document.addEventListener("DOMContentLoaded", () => {
-  loadProducts();
-  updateCartCount();
-});
