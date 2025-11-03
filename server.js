@@ -1,134 +1,93 @@
 import express from "express";
-import mongoose from "mongoose";
-import dotenv from "dotenv";
+import Razorpay from "razorpay";
 import cors from "cors";
+import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
-import Razorpay from "razorpay";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
-import User from "./models/User.js";
 
 dotenv.config();
 const app = express();
 
-// --- Basic setup ---
+// ---------- Setup ----------
 app.use(express.json());
 app.use(cors());
 
-// --- MongoDB ---
-mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB error:", err.message));
+// ---------- Resolve Paths ----------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// --- Razorpay ---
+// ---------- Razorpay Instance ----------
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// --- Auth Middleware ---
-function verifyToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ message: "Unauthorized" });
-  const token = authHeader.split(" ")[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ message: "Invalid token" });
-  }
-}
+// ---------- Product Data ----------
+const products = [
+  {
+    _id: "1",
+    name: "Gold Necklace",
+    price: 2500,
+    image: "https://i.imgur.com/9M7L4rL.png",
+  },
+  {
+    _id: "2",
+    name: "Silver Earrings",
+    price: 1200,
+    image: "https://i.imgur.com/6o5D6Hc.png",
+  },
+  {
+    _id: "3",
+    name: "Diamond Ring",
+    price: 5000,
+    image: "https://i.imgur.com/lU9t6yN.png",
+  },
+  {
+    _id: "4",
+    name: "Pearl Bracelet",
+    price: 1800,
+    image: "https://i.imgur.com/3V9g2mZ.png",
+  },
+];
 
-// --- Auth Routes ---
-app.post("/api/signup", async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: "User already exists" });
-    const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashed });
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token });
-  } catch (err) {
-    res.status(500).json({ message: "Signup failed" });
-  }
+// ---------- API Routes ----------
+
+// Fetch Products
+app.get("/api/products", (req, res) => {
+  res.json(products);
 });
 
-app.post("/api/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ message: "Invalid password" });
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token });
-  } catch (err) {
-    res.status(500).json({ message: "Login failed" });
-  }
-});
-
-// --- Razorpay Checkout Order Route ---
+// Create Razorpay Order
 app.post("/api/orders/create", async (req, res) => {
   try {
     const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
+
     const order = await razorpay.orders.create({
-      amount: amount * 100, // Razorpay takes amount in paise
+      amount: amount * 100, // Convert to paise
       currency: "INR",
-      receipt: `order_rcptid_${Date.now()}`,
+      receipt: `receipt_${Date.now()}`,
     });
-    res.json(order); // ✅ Must return the entire order object
+
+    res.json(order);
   } catch (err) {
-    console.error("Error creating order:", err);
+    console.error("❌ Error creating order:", err);
     res.status(500).json({ error: "Failed to create Razorpay order" });
   }
 });
 
-app.get("/api/orders", verifyToken, async (req, res) => {
-  const user = await User.findById(req.user.id);
-  res.json(user.orders || []);
+// ---------- Serve Frontend ----------
+const frontendPath = path.join(__dirname, "public");
+app.use(express.static(frontendPath));
+
+// For SPA routes or direct access
+app.get("*", (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-// --- Static Products (Frontend Fetches These) ---
-app.get("/api/products", (req, res) => {
-  res.json([
-    {
-      _id: "1",
-      name: "Gold Necklace",
-      price: 1500,
-      image: "https://i.imgur.com/T5LzVqf.png",
-    },
-    {
-      _id: "2",
-      name: "Silver Bracelet",
-      price: 900,
-      image: "https://i.imgur.com/qe5k5ez.png",
-    },
-    {
-      _id: "3",
-      name: "Diamond Ring",
-      price: 2500,
-      image: "https://i.imgur.com/7uO3B5I.png",
-    },
-    {
-      _id: "4",
-      name: "Pearl Earrings",
-      price: 1200,
-      image: "https://i.imgur.com/MmWrVdU.png",
-    },
-  ]);
-});
-
-// --- Serve Frontend (Render Static Folder) ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, "frontend")));
-app.get("*", (req, res) =>
-  res.sendFile(path.join(__dirname, "frontend", "index.html"))
-);
-
+// ---------- Start Server ----------
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
