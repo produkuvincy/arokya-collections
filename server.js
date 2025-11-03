@@ -11,37 +11,31 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// ---------- Static File Setup ----------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ Serve everything inside the "public" folder
+// ✅ Serve static files
 app.use(express.static(path.join(__dirname, "public")));
 
-// ---------- Razorpay Setup ----------
+// ✅ Razorpay setup
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// ---------- API: Get Products ----------
+// ✅ Dummy products API
 app.get("/api/products", (req, res) => {
   res.json([
     { _id: "1", name: "Gold Necklace", price: 2500, image: "https://via.placeholder.com/150" },
     { _id: "2", name: "Silver Bracelet", price: 1200, image: "https://via.placeholder.com/150" },
-    { _id: "3", name: "Diamond Ring", price: 5000, image: "https://via.placeholder.com/150" },
-    { _id: "4", name: "Pearl Earrings", price: 800, image: "https://via.placeholder.com/150" },
   ]);
 });
 
-// ---------- API: Create Razorpay Order ----------
+// ✅ Razorpay order API
 app.post("/api/orders/create", async (req, res) => {
   try {
     const { amount } = req.body;
-
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: "Invalid amount" });
-    }
+    if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
 
     const order = await razorpay.orders.create({
       amount: amount * 100,
@@ -49,23 +43,17 @@ app.post("/api/orders/create", async (req, res) => {
       receipt: `receipt_${Date.now()}`,
     });
 
-    res.json({
-      id: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      key: process.env.RAZORPAY_KEY_ID,
-    });
+    res.json(order);
   } catch (err) {
-    console.error("Error creating Razorpay order:", err);
+    console.error("Order creation failed:", err);
     res.status(500).json({ error: "Failed to create Razorpay order" });
   }
 });
 
-// ---------- Serve index.html for all unknown routes ----------
+// ✅ Fallback for all unknown routes (SPA support)
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// ---------- Start Server ----------
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
