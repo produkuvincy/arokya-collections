@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_URL = "";
+  const API_URL = ""; // Leave blank if backend is on same domain
 
-  // ✅ Grab all elements safely
+  // --- DOM ELEMENTS ---
   const main = document.getElementById("main-content");
   const cartBtn = document.getElementById("cart-btn");
   const cartModal = document.getElementById("cart-modal");
@@ -15,72 +15,152 @@ document.addEventListener("DOMContentLoaded", () => {
   let cart = [];
   let token = localStorage.getItem("token");
 
-  // ✅ Hide signup if logged in
-  if (token && signupBtn) {
-    signupBtn.style.display = "none";
+  // --- INITIAL STATE ---
+  if (cartModal) cartModal.classList.add("hidden"); // Ensure cart modal starts hidden
+
+  // Hide signup if user is logged in
+  if (token) {
+    if (signupBtn) signupBtn.style.display = "none";
     if (loginBtn) loginBtn.textContent = "Logout";
   }
 
-  // ✅ Attach event listeners safely
+  // --- LOAD PRODUCTS (STATIC FALLBACK) ---
+  async function loadProducts() {
+    try {
+      // Example static product list if no backend route yet
+      const products = [
+        {
+          id: 1,
+          name: "Elegant Gold Necklace",
+          price: 12000,
+          image: "https://i.imgur.com/Y5YFv3G.jpg"
+        },
+        {
+          id: 2,
+          name: "Classic Diamond Ring",
+          price: 8500,
+          image: "https://i.imgur.com/XmCL5mS.jpg"
+        },
+        {
+          id: 3,
+          name: "Silver Anklet Set",
+          price: 2500,
+          image: "https://i.imgur.com/hl3aYvA.jpg"
+        }
+      ];
+
+      renderProducts(products);
+    } catch (err) {
+      console.error("❌ Failed to load products:", err);
+      main.innerHTML = "<p>Unable to load products. Please try again later.</p>";
+    }
+  }
+
+  // --- RENDER PRODUCTS ---
+  function renderProducts(products) {
+    if (!main) return;
+    main.innerHTML = `
+      <h2>Featured Products</h2>
+      <div id="products-container" class="products-grid"></div>
+    `;
+    const container = document.getElementById("products-container");
+    products.forEach(p => {
+      const div = document.createElement("div");
+      div.className = "product-card";
+      div.innerHTML = `
+        <img src="${p.image}" alt="${p.name}" />
+        <h3>${p.name}</h3>
+        <p>₹${p.price}</p>
+        <button class="add-to-cart" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">Add to Cart</button>
+      `;
+      container.appendChild(div);
+    });
+
+    // Attach event listeners for "Add to Cart" buttons
+    document.querySelectorAll(".add-to-cart").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const item = {
+          id: e.target.dataset.id,
+          name: e.target.dataset.name,
+          price: parseInt(e.target.dataset.price)
+        };
+        addToCart(item);
+      });
+    });
+  }
+
+  // --- ADD TO CART ---
+  function addToCart(item) {
+    cart.push(item);
+    updateCartCount();
+  }
+
+  function updateCartCount() {
+    if (cartBtn) cartBtn.textContent = `Cart (${cart.length})`;
+  }
+
+  // --- RENDER CART ITEMS ---
+  function renderCartItems() {
+    if (!cartItemsList) return;
+    cartItemsList.innerHTML = "";
+    if (cart.length === 0) {
+      cartItemsList.innerHTML = "<li>Your cart is empty.</li>";
+      return;
+    }
+    cart.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.name} - ₹${item.price}`;
+      cartItemsList.appendChild(li);
+    });
+  }
+
+  // --- EVENT LISTENERS ---
   if (cartBtn) {
     cartBtn.addEventListener("click", () => {
-      if (loginBtn && loginBtn.textContent === "Logout") {
-        if (cartModal) cartModal.classList.remove("hidden");
-        renderCartItems();
-      } else {
-        alert("Please login first!");
-      }
+      if (!token) return alert("Please login first!");
+      cartModal.classList.remove("hidden");
+      renderCartItems();
     });
-  } else {
-    console.warn("⚠️ cartBtn not found in DOM");
   }
 
   if (closeCart) {
-    closeCart.addEventListener("click", () => cartModal?.classList.add("hidden"));
-  } else {
-    console.warn("⚠️ closeCart button not found");
+    closeCart.addEventListener("click", () => {
+      if (cartModal) cartModal.classList.add("hidden");
+    });
   }
 
   if (checkoutBtn) {
-    checkoutBtn.addEventListener("click", async () => {
-      if (cart.length === 0) return alert("Cart is empty!");
-      const amount = cart.reduce((sum, item) => sum + item.price, 0);
-
-      try {
-        const res = await fetch(`${API_URL}/api/orders/create`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ amount }),
-        });
-
-        const order = await res.json();
-        if (!order.id) return alert("Order creation failed.");
-
-        const options = {
-          key: order.key || "rzp_test_key",
-          amount: order.amount,
-          currency: "INR",
-          name: "Arokya Collections",
-          description: "Jewelry Purchase",
-          order_id: order.id,
-          handler: function (response) {
-            alert("✅ Payment Successful: " + response.razorpay_payment_id);
-          },
-          theme: { color: "#d63384" },
-        };
-
-        const rzp = new Razorpay(options);
-        rzp.open();
-      } catch (err) {
-        alert("Checkout error: " + err.message);
-      }
+    checkoutBtn.addEventListener("click", () => {
+      if (cart.length === 0) return alert("Your cart is empty!");
+      alert("Proceeding to checkout...");
     });
-  } else {
-    console.warn("⚠️ checkoutBtn not found in DOM");
   }
 
-  // Rest of your logic (loadProducts, renderProducts, addToCart, etc.)
+  if (loginBtn) {
+    loginBtn.addEventListener("click", () => {
+      if (token) {
+        localStorage.removeItem("token");
+        alert("Logged out successfully!");
+        window.location.reload();
+      } else {
+        alert("Login flow not implemented yet.");
+      }
+    });
+  }
+
+  if (signupBtn) {
+    signupBtn.addEventListener("click", () => {
+      alert("Signup flow not implemented yet.");
+    });
+  }
+
+  if (ordersBtn) {
+    ordersBtn.addEventListener("click", () => {
+      if (!token) return alert("Please login first!");
+      alert("Your orders page coming soon!");
+    });
+  }
+
+  // --- RUN ON LOAD ---
+  loadProducts();
 });
