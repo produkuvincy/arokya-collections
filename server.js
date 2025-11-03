@@ -71,19 +71,20 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// --- Orders ---
-app.post("/api/orders/create", verifyToken, async (req, res) => {
+// --- Razorpay Checkout Order Route ---
+app.post("/api/create-order", async (req, res) => {
   try {
+    const { amount } = req.body;
     const options = {
-      amount: req.body.amount * 100,
+      amount: amount * 100, // Razorpay works in paise
       currency: "INR",
-      receipt: "receipt_order_" + Date.now(),
+      receipt: "receipt_" + Date.now(),
     };
     const order = await razorpay.orders.create(options);
     res.json(order);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Order creation failed" });
+    console.error("Razorpay Order Error:", err);
+    res.status(500).json({ message: "Failed to create Razorpay order" });
   }
 });
 
