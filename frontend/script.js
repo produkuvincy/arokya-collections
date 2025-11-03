@@ -163,7 +163,7 @@ checkoutBtn.addEventListener("click", async () => {
     }
 
     const options = {
-      key: "rzp_test_xxxxxxxxxxxxx", // Replace with your RAZORPAY_KEY_ID
+      key: order.key, // Replace with your RAZORPAY_KEY_ID
       amount: order.amount,
       currency: "INR",
       name: "Arokya Collections",
