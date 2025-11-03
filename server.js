@@ -72,7 +72,7 @@ app.post("/api/login", async (req, res) => {
 });
 
 // --- Razorpay Checkout Order Route ---
-app.post("/api/create-order", async (req, res) => {
+app.post("/api/orders/create", async (req, res) => {
   try {
     const { amount } = req.body;
     const options = {
