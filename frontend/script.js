@@ -1,7 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const API_URL = ""; // Leave blank if backend is on same domain
-
-  // --- DOM ELEMENTS ---
+  const API_BASE = ""; // blank => same origin
   const main = document.getElementById("main-content");
   const cartBtn = document.getElementById("cart-btn");
   const cartModal = document.getElementById("cart-modal");
@@ -12,94 +10,73 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupBtn = document.getElementById("signup-btn");
   const ordersBtn = document.getElementById("orders-btn");
 
-  let cart = [];
-  let token = localStorage.getItem("token");
+  // Ensure modal is hidden on load
+  if (cartModal) cartModal.classList.add("hidden");
 
-  // --- INITIAL STATE ---
-  if (cartModal) cartModal.classList.add("hidden"); // Ensure cart modal starts hidden
+  // Keep local cart
+  let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+  updateCartButton();
 
-  // Hide signup if user is logged in
-  if (token) {
-    if (signupBtn) signupBtn.style.display = "none";
-    if (loginBtn) loginBtn.textContent = "Logout";
-  }
-
-  // --- LOAD PRODUCTS (STATIC FALLBACK) ---
+  // Load products (try backend first, otherwise use static)
   async function loadProducts() {
+    let products = null;
     try {
-      // Example static product list if no backend route yet
-      const products = [
-        {
-          id: 1,
-          name: "Elegant Gold Necklace",
-          price: 12000,
-          image: "https://i.imgur.com/Y5YFv3G.jpg"
-        },
-        {
-          id: 2,
-          name: "Classic Diamond Ring",
-          price: 8500,
-          image: "https://i.imgur.com/XmCL5mS.jpg"
-        },
-        {
-          id: 3,
-          name: "Silver Anklet Set",
-          price: 2500,
-          image: "https://i.imgur.com/hl3aYvA.jpg"
-        }
-      ];
-
-      renderProducts(products);
+      const res = await fetch(`${API_BASE}/api/products`);
+      if (res.ok) products = await res.json();
+      else throw new Error("No products from API");
     } catch (err) {
-      console.error("❌ Failed to load products:", err);
-      main.innerHTML = "<p>Unable to load products. Please try again later.</p>";
+      // fallback static products so page never breaks
+      products = [
+        { id: "1", name: "Gold Necklace", price: 12000, image: "https://i.imgur.com/Y5YFv3G.jpg" },
+        { id: "2", name: "Diamond Ring", price: 8500, image: "https://i.imgur.com/XmCL5mS.jpg" },
+        { id: "3", name: "Silver Anklet", price: 2500, image: "https://i.imgur.com/hl3aYvA.jpg" }
+      ];
+      console.warn("Products fallback used:", err);
     }
+
+    renderProducts(products);
   }
 
-  // --- RENDER PRODUCTS ---
   function renderProducts(products) {
     if (!main) return;
-    main.innerHTML = `
-      <h2>Featured Products</h2>
-      <div id="products-container" class="products-grid"></div>
-    `;
+    main.innerHTML = `<h2>Featured Products</h2>
+      <div class="products-grid" id="products-container"></div>`;
     const container = document.getElementById("products-container");
     products.forEach(p => {
-      const div = document.createElement("div");
-      div.className = "product-card";
-      div.innerHTML = `
-        <img src="${p.image}" alt="${p.name}" />
+      const card = document.createElement("div");
+      card.className = "product-card";
+      card.innerHTML = `
+        <img src="${p.image}" alt="${p.name}">
         <h3>${p.name}</h3>
         <p>₹${p.price}</p>
         <button class="add-to-cart" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">Add to Cart</button>
       `;
-      container.appendChild(div);
+      container.appendChild(card);
     });
 
-    // Attach event listeners for "Add to Cart" buttons
+    // attach events safely
     document.querySelectorAll(".add-to-cart").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const item = {
-          id: e.target.dataset.id,
-          name: e.target.dataset.name,
-          price: parseInt(e.target.dataset.price)
-        };
-        addToCart(item);
+      btn.addEventListener("click", e => {
+        const id = btn.dataset.id;
+        const name = btn.dataset.name;
+        const price = Number(btn.dataset.price);
+        addToCart({ id, name, price });
       });
     });
   }
 
-  // --- ADD TO CART ---
   function addToCart(item) {
     cart.push(item);
-    updateCartCount();
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartButton();
+    alert(`${item.name} added to cart`);
   }
 
-  function updateCartCount() {
-    if (cartBtn) cartBtn.textContent = `Cart (${cart.length})`;
+  function updateCartButton() {
+    if (!cartBtn) return;
+    cartBtn.textContent = `Cart (${cart.length})`;
   }
 
-  // --- RENDER CART ITEMS ---
   function renderCartItems() {
     if (!cartItemsList) return;
     cartItemsList.innerHTML = "";
@@ -107,60 +84,49 @@ document.addEventListener("DOMContentLoaded", () => {
       cartItemsList.innerHTML = "<li>Your cart is empty.</li>";
       return;
     }
-    cart.forEach(item => {
+    cart.forEach(it => {
       const li = document.createElement("li");
-      li.textContent = `${item.name} - ₹${item.price}`;
+      li.textContent = `${it.name} - ₹${it.price}`;
       cartItemsList.appendChild(li);
     });
   }
 
-  // --- EVENT LISTENERS ---
+  // Safe event wiring
   if (cartBtn) {
     cartBtn.addEventListener("click", () => {
-      if (!token) return alert("Please login first!");
-      cartModal.classList.remove("hidden");
+      cartModal?.classList.remove("hidden");
       renderCartItems();
     });
   }
-
-  if (closeCart) {
-    closeCart.addEventListener("click", () => {
-      if (cartModal) cartModal.classList.add("hidden");
-    });
-  }
-
-  if (checkoutBtn) {
-    checkoutBtn.addEventListener("click", () => {
-      if (cart.length === 0) return alert("Your cart is empty!");
-      alert("Proceeding to checkout...");
-    });
-  }
+  if (closeCart) closeCart.addEventListener("click", () => cartModal?.classList.add("hidden"));
+  if (checkoutBtn) checkoutBtn.addEventListener("click", () => {
+    if (cart.length === 0) return alert("Cart empty");
+    alert("Checkout flow (Razorpay) will run here.");
+  });
 
   if (loginBtn) {
     loginBtn.addEventListener("click", () => {
-      if (token) {
-        localStorage.removeItem("token");
-        alert("Logged out successfully!");
-        window.location.reload();
-      } else {
-        alert("Login flow not implemented yet.");
+      alert("Login flow - simple prompt demo");
+      const email = prompt("Email:");
+      const pass = prompt("Password:");
+      if (email && pass) {
+        localStorage.setItem("token", "demo-token");
+        alert("You are now logged in (demo)");
+        if (signupBtn) signupBtn.style.display = "none";
       }
     });
   }
-
   if (signupBtn) {
     signupBtn.addEventListener("click", () => {
-      alert("Signup flow not implemented yet.");
+      alert("Signup flow - demo only");
     });
   }
-
   if (ordersBtn) {
     ordersBtn.addEventListener("click", () => {
-      if (!token) return alert("Please login first!");
-      alert("Your orders page coming soon!");
+      alert("Orders page - demo");
     });
   }
 
-  // --- RUN ON LOAD ---
+  // Start
   loadProducts();
 });
