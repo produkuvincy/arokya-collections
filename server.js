@@ -75,16 +75,15 @@ app.post("/api/login", async (req, res) => {
 app.post("/api/orders/create", async (req, res) => {
   try {
     const { amount } = req.body;
-    const options = {
-      amount: amount * 100, // Razorpay works in paise
+    const order = await razorpay.orders.create({
+      amount: amount * 100, // Razorpay takes amount in paise
       currency: "INR",
-      receipt: "receipt_" + Date.now(),
-    };
-    const order = await razorpay.orders.create(options);
-    res.json(order);
+      receipt: `order_rcptid_${Date.now()}`,
+    });
+    res.json(order); // ✅ Must return the entire order object
   } catch (err) {
-    console.error("Razorpay Order Error:", err);
-    res.status(500).json({ message: "Failed to create Razorpay order" });
+    console.error("Error creating order:", err);
+    res.status(500).json({ error: "Failed to create Razorpay order" });
   }
 });
 
