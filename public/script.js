@@ -27,19 +27,41 @@ function updateCartCount() {
 }
 
 function setAuthUI(loggedIn, name) {
+  const guestBtns = document.querySelectorAll(".guest-btn");
+  const profileMenu = document.getElementById("profile-menu");
+  const profileName = document.getElementById("profile-name");
+  const dropdown = document.getElementById("dropdown-menu");
+
   if (loggedIn) {
-    loginBtn.textContent = "Logout";
-    loginBtn.onclick = logout;
-    signupBtn.style.display = "none";
-    yourOrdersBtn.disabled = false;
-    if (name) loginBtn.title = `Logged in as ${name}`;
+    // Hide guest buttons
+    guestBtns.forEach((b) => (b.style.display = "none"));
+    profileMenu.classList.remove("hidden");
+    profileName.textContent = name || "User";
+
+    // Toggle dropdown on click
+    document.getElementById("profile-btn").onclick = () => {
+      dropdown.classList.toggle("hidden");
+    };
+
+    // Logout
+    document.getElementById("logout-btn").onclick = () => {
+      token = null;
+      localStorage.removeItem("token");
+      dropdown.classList.add("hidden");
+      setAuthUI(false);
+      alert("Logged out!");
+    };
   } else {
-    loginBtn.textContent = "Login";
-    loginBtn.onclick = loginFlow;
-    signupBtn.style.display = "";
-    yourOrdersBtn.disabled = true;
-    loginBtn.title = "";
+    // Show guest buttons
+    guestBtns.forEach((b) => (b.style.display = ""));
+    profileMenu.classList.add("hidden");
   }
+
+  // Close dropdown if clicking outside
+  document.addEventListener("click", (e) => {
+    const profileArea = document.getElementById("profile-menu");
+    if (!profileArea.contains(e.target)) dropdown.classList.add("hidden");
+  });
 }
 
 // ---------- Auth flows ----------
