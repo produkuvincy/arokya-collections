@@ -70,6 +70,18 @@ button:disabled {
   z-index: 100;
   transition: all 0.2s ease;
 }
+#dropdown-menu {
+  transform-origin: top right;
+  transition: all 0.2s ease;
+}
+#dropdown-menu.hidden {
+  opacity: 0;
+  transform: scale(0.95);
+}
+#dropdown-menu:not(.hidden) {
+  opacity: 1;
+  transform: scale(1);
+}
     </style>
   </head>
 
