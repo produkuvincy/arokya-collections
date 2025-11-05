@@ -249,3 +249,64 @@ document.addEventListener("DOMContentLoaded", async () => {
   signupBtn.addEventListener("click", signupFlow);
   // loginBtn click is wired inside setAuthUI() / checkMe()
 });
+
+// ---------- Modal helpers ----------
+function openModal(id) {
+  document.getElementById(id).classList.remove("hidden");
+}
+function closeAllModals() {
+  document.querySelectorAll(".close-modal").forEach(btn =>
+    btn.addEventListener("click", () =>
+      btn.closest("div[id$='-modal']").classList.add("hidden")
+    )
+  );
+}
+closeAllModals();
+
+// ---------- Auth Modals ----------
+signupBtn.addEventListener("click", () => openModal("signup-modal"));
+loginBtn.addEventListener("click", () => openModal("login-modal"));
+
+// ---------- Signup ----------
+document.getElementById("signup-submit").addEventListener("click", async () => {
+  const name = document.getElementById("signup-name").value.trim();
+  const email = document.getElementById("signup-email").value.trim();
+  const password = document.getElementById("signup-password").value.trim();
+  if (!name || !email || !password) return alert("All fields required");
+
+  const res = await fetch(`${API_BASE}/api/auth/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, password }),
+  });
+  const data = await res.json();
+  if (data.token) {
+    token = data.token;
+    localStorage.setItem("token", token);
+    alert("✅ Signup successful!");
+    document.getElementById("signup-modal").classList.add("hidden");
+    setAuthUI(true, name);
+  } else alert(data.message || "Signup failed");
+});
+
+// ---------- Login ----------
+document.getElementById("login-submit").addEventListener("click", async () => {
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value.trim();
+  if (!email || !password) return alert("Enter both email and password");
+
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (data.token) {
+    token = data.token;
+    localStorage.setItem("token", token);
+    alert("✅ Login successful!");
+    document.getElementById("login-modal").classList.add("hidden");
+    setAuthUI(true, data.user?.name);
+  } else alert(data.message || "Login failed");
+});
+
