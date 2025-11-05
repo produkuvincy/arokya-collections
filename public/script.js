@@ -252,13 +252,15 @@ checkoutBtn.addEventListener("click", async () => {
 });
 
 // ---------- Orders ----------
-yourOrdersBtn.addEventListener("click", async () => {
+document.getElementById("your-orders-btn").addEventListener("click", async () => {
   if (!token) return alert("Please login to view your orders.");
-  const res = await fetch(`${API_BASE}/api/orders`, { headers: { Authorization: `Bearer ${token}` } });
+  const res = await fetch(`${API_BASE}/api/orders`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   const orders = await res.json();
   if (!orders?.length) return alert("No orders yet.");
   const msg = orders
-    .map((o) => `• ${o.orderId}  —  ₹${(o.amount / 100).toFixed(2)}  —  ${o.status}`)
+    .map((o) => `• ${o.orderId} — ₹${(o.amount / 100).toFixed(2)} — ${o.status}`)
     .join("\n");
   alert(`Your Orders:\n\n${msg}`);
 });
