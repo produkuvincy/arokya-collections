@@ -101,6 +101,16 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+app.post("/api/signup", async (req, res) => {
+  req.url = "/api/auth/signup";
+  app._router.handle(req, res);
+});
+
+app.post("/api/login", async (req, res) => {
+  req.url = "/api/auth/login";
+  app._router.handle(req, res);
+});
+
 app.get("/api/me", auth, async (req, res) => {
   const user = await User.findById(req.userId).select("name email");
   res.json(user);
