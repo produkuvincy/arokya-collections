@@ -106,5 +106,33 @@ button:disabled {
 
     <!-- SCRIPT -->
     <script src="./script.js"></script>
+
+    <!-- LOGIN MODAL -->
+<div id="login-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl p-6 w-80 shadow-lg">
+    <h2 class="text-xl font-semibold mb-4 text-center text-pink-700">Login</h2>
+    <input id="login-email" type="email" placeholder="Email" class="border w-full mb-3 px-3 py-2 rounded">
+    <input id="login-password" type="password" placeholder="Password" class="border w-full mb-4 px-3 py-2 rounded">
+    <div class="flex justify-between">
+      <button id="login-submit" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded">Login</button>
+      <button class="close-modal text-gray-600 px-4 py-2">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNUP MODAL -->
+<div id="signup-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl p-6 w-80 shadow-lg">
+    <h2 class="text-xl font-semibold mb-4 text-center text-pink-700">Sign Up</h2>
+    <input id="signup-name" type="text" placeholder="Name" class="border w-full mb-3 px-3 py-2 rounded">
+    <input id="signup-email" type="email" placeholder="Email" class="border w-full mb-3 px-3 py-2 rounded">
+    <input id="signup-password" type="password" placeholder="Password" class="border w-full mb-4 px-3 py-2 rounded">
+    <div class="flex justify-between">
+      <button id="signup-submit" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded">Sign Up</button>
+      <button class="close-modal text-gray-600 px-4 py-2">Cancel</button>
+    </div>
+  </div>
+</div>
+
   </body>
 </html>
