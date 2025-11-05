@@ -80,33 +80,33 @@ button:disabled {
   <div class="container mx-auto flex justify-between items-center px-6">
     <h1 class="text-2xl font-bold">Arokya Collections</h1>
     <div class="space-x-3 flex items-center relative">
-      <!-- Sign Up and Login buttons (for guests) -->
-      <button id="signup-btn" class="guest-btn bg-pink-600 hover:bg-pink-700 text-white py-2 px-4 rounded-lg">
-        Sign Up
-      </button>
-      <button id="login-btn" class="guest-btn bg-pink-600 hover:bg-pink-700 text-white py-2 px-4 rounded-lg">
-        Login
-      </button>
+  <!-- Sign Up / Login (shown when logged out) -->
+  <button id="signup-btn" class="guest-btn bg-pink-600 hover:bg-pink-700 text-white py-2 px-4 rounded-lg">
+    Sign Up
+  </button>
+  <button id="login-btn" class="guest-btn bg-pink-600 hover:bg-pink-700 text-white py-2 px-4 rounded-lg">
+    Login
+  </button>
 
-      <!-- Profile dropdown (for logged-in users) -->
-      <div id="profile-menu" class="hidden relative">
-        <button id="profile-btn" class="bg-pink-600 hover:bg-pink-700 text-white py-2 px-4 rounded-lg flex items-center space-x-1">
-          <span id="profile-name">User</span>
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        <div id="dropdown-menu" class="absolute right-0 mt-2 w-40 bg-white text-gray-700 rounded-lg shadow-lg hidden">
-          <button id="your-orders-btn" class="w-full text-left px-4 py-2 hover:bg-gray-100">Your Orders</button>
-          <button id="logout-btn" class="w-full text-left px-4 py-2 hover:bg-gray-100">Logout</button>
-        </div>
-      </div>
-
-      <!-- Cart -->
-      <button id="cart-count" onclick="showCart()" class="bg-pink-600 hover:bg-pink-700 text-white py-2 px-4 rounded-lg">
-        Cart (0)
-      </button>
+  <!-- Profile dropdown (shown when logged in) -->
+  <div id="profile-menu" class="hidden relative">
+    <button id="profile-btn" class="bg-pink-600 hover:bg-pink-700 text-white py-2 px-4 rounded-lg flex items-center space-x-1">
+      <span id="profile-name">User</span>
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+    <div id="dropdown-menu" class="absolute right-0 mt-2 w-40 bg-white text-gray-800 rounded-lg shadow-lg hidden">
+      <button id="your-orders-btn" class="w-full text-left px-4 py-2 hover:bg-gray-100">Your Orders</button>
+      <button id="logout-btn" class="w-full text-left px-4 py-2 hover:bg-gray-100">Logout</button>
     </div>
+  </div>
+
+  <!-- Cart -->
+  <button id="cart-count" class="bg-pink-600 hover:bg-pink-700 text-white py-2 px-4 rounded-lg">
+    Cart (0)
+  </button>
+</div>
   </div>
 </header>
 
