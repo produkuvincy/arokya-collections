@@ -6,6 +6,7 @@ const checkoutBtn = document.getElementById("checkout-btn");
 const closeCartBtn = document.getElementById("close-cart");
 const cartCountBtn = document.getElementById("cart-count");
 
+// Initialize cart
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
 // ---------- Load Products ----------
@@ -31,6 +32,11 @@ async function loadProducts() {
         </div>`
       )
       .join("");
+
+    // ✅ Reattach click listeners after loading products
+    document.querySelectorAll(".add-to-cart").forEach((btn) => {
+      btn.addEventListener("click", addToCart);
+    });
   } catch (err) {
     console.error("Failed to load products:", err);
     productsContainer.innerHTML = `<p class="text-red-500">Failed to load products. Please refresh.</p>`;
@@ -38,22 +44,26 @@ async function loadProducts() {
 }
 
 // ---------- Add to Cart ----------
-document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("add-to-cart")) {
-    const product = {
-      id: e.target.dataset.id,
-      name: e.target.dataset.name,
-      price: parseFloat(e.target.dataset.price),
-      qty: 1,
-    };
-    const existing = cart.find((item) => item.id === product.id);
-    if (existing) existing.qty++;
-    else cart.push(product);
+function addToCart(e) {
+  const btn = e.target;
+  const product = {
+    id: btn.dataset.id,
+    name: btn.dataset.name,
+    price: parseFloat(btn.dataset.price),
+    qty: 1,
+  };
 
-    localStorage.setItem("cart", JSON.stringify(cart));
-    updateCartCount();
+  const existing = cart.find((item) => item.id === product.id);
+  if (existing) {
+    existing.qty++;
+  } else {
+    cart.push(product);
   }
-});
+
+  localStorage.setItem("cart", JSON.stringify(cart));
+  updateCartCount();
+  alert(`${product.name} added to cart!`);
+}
 
 // ---------- Update Cart Count ----------
 function updateCartCount() {
@@ -86,7 +96,6 @@ checkoutBtn.addEventListener("click", async () => {
       return;
     }
 
-    // ✅ Create Order
     const res = await fetch(`${API_BASE}/api/orders/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -99,7 +108,6 @@ checkoutBtn.addEventListener("click", async () => {
       return;
     }
 
-    // ✅ Razorpay Checkout
     const options = {
       key: order.key,
       amount: order.amount,
@@ -120,9 +128,7 @@ checkoutBtn.addEventListener("click", async () => {
     const rzp = new Razorpay(options);
     rzp.open();
 
-    // ✅ Handle Payment Failure
     rzp.on("payment.failed", function (response) {
-      console.error("Payment Failed:", response.error);
       alert("❌ Payment Failed: " + response.error.description);
     });
   } catch (err) {
