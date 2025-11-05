@@ -40,24 +40,53 @@ app.post("/api/orders/create", async (req, res) => {
       return res.status(400).json({ error: "Invalid amount" });
     }
 
+    // Debug: confirm Razorpay is initialized with a valid key
+    console.log("🟢 Creating order with Razorpay key:", process.env.RAZORPAY_KEY_ID);
+
     const order = await razorpay.orders.create({
       amount: amount * 100, // Convert to paise
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     });
 
-    // ✅ Send both order and key_id
+    // Debug success
+    console.log("✅ Razorpay order created successfully:", order);
+
     res.json({
       id: order.id,
       amount: order.amount,
       currency: order.currency,
-      key: process.env.RAZORPAY_KEY_ID, // 👈 This line is critical
+      key: process.env.RAZORPAY_KEY_ID, // Send key to frontend
     });
   } catch (err) {
-    console.error("Error creating Razorpay order:", err);
-    res.status(500).json({ error: "Failed to create Razorpay order" });
+    console.error("❌ Error creating Razorpay order:");
+    console.error("Full error object:", JSON.stringify(err, null, 2));
+
+    // Handle missing keys separately for clarity
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error("⚠️ Missing Razorpay credentials in environment variables!");
+      return res.status(500).json({
+        error: "Server missing Razorpay credentials",
+      });
+    }
+
+    // Specific HTTP errors from Razorpay SDK
+    if (err.statusCode) {
+      console.error("🔴 Razorpay API error:", err.error || err.message);
+      return res.status(err.statusCode).json({
+        error: "Razorpay API Error",
+        details: err.error || err.message,
+      });
+    }
+
+    // Generic server fallback
+    res.status(500).json({
+      error: "Failed to create Razorpay order",
+      details: err.message || "Unknown error",
+    });
   }
 });
+
 // ✅ Fallback for all unknown routes (SPA support)
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
