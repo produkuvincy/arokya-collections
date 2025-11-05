@@ -1,41 +1,26 @@
-// Import mongoose to define the User schema and interact with MongoDB
+// models/User.js
+// Simple User schema with hashed password and a list of saved orders.
+
 import mongoose from "mongoose";
 
-// Define the structure (schema) of a User document in MongoDB
-const userSchema = new mongoose.Schema({
-  // User's full name
-  name: { 
-    type: String, 
-    required: true 
+const orderSchema = new mongoose.Schema(
+  {
+    orderId: String,
+    amount: Number,
+    currency: String,
+    status: { type: String, default: "paid" }, // you can change this if you add webhooks
   },
+  { _id: false, timestamps: true }
+);
 
-  // Unique email address used for login
-  email: { 
-    type: String, 
-    required: true, 
-    unique: true 
+const userSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true },
+    orders: [orderSchema],
   },
+  { timestamps: true }
+);
 
-  // Encrypted (hashed) password, stored securely
-  password: { 
-    type: String, 
-    required: true 
-  },
-
-  // Optional list of past orders for the user
-  orders: [
-    {
-      orderId: String,      // Razorpay or custom order ID
-      amount: Number,       // Total amount paid
-      currency: String,     // Usually "INR"
-      status: String,       // e.g., "paid", "shipped"
-      createdAt: { 
-        type: Date, 
-        default: Date.now   // Automatically set the order date
-      }
-    }
-  ],
-});
-
-// Create and export the User model so it can be used in server.js
 export default mongoose.model("User", userSchema);
