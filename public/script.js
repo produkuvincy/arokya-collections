@@ -239,7 +239,7 @@ async function submitSignup() {
     token = data.token;
     localStorage.setItem("token", token);
     closeModal("signup-modal");
-    setAuthUI(true, data?.user?.name || name);
+    setAuthUI(true, name);   // ✅ passes the new user’s name to the dropdown
     alert("✅ Signup successful!");
   } catch (e) {
     console.error(e);
