@@ -142,3 +142,16 @@ document.addEventListener("DOMContentLoaded", () => {
   loadProducts();
   updateCartCount();
 });
+
+// ---------- Auth & Orders (placeholders) ----------
+document.getElementById("login-btn").addEventListener("click", () => {
+  alert("🔐 Login feature coming soon!");
+});
+
+document.getElementById("signup-btn").addEventListener("click", () => {
+  alert("📝 Signup feature coming soon!");
+});
+
+document.getElementById("your-orders-btn").addEventListener("click", () => {
+  alert("📦 Your Orders feature coming soon!");
+});
