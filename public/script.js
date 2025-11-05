@@ -261,7 +261,7 @@ async function submitLogin() {
     token = data.token;
     localStorage.setItem("token", token);
     closeModal("login-modal");
-    setAuthUI(true, data?.user?.name);
+    setAuthUI(true, data.user?.name || "User");   // ✅ displays the username if available
     alert("✅ Login successful!");
   } catch (e) {
     console.error(e);
