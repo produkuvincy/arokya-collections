@@ -146,26 +146,56 @@ checkoutBtn.addEventListener("click", async () => {
 });
 
 // --- Auth UI helpers ---
+// ---------- AUTH UI ----------
 function setAuthUI(isLoggedIn, name = "") {
-  // Simple version: hide Sign Up when logged in, turn Login into Logout
+  const guestBtns = document.querySelectorAll(".guest-btn");
+  const profileMenu = document.getElementById("profile-menu");
+  const profileName = document.getElementById("profile-name");
+  const dropdown = document.getElementById("dropdown-menu");
+
   if (isLoggedIn) {
-    if (signupBtn) signupBtn.style.display = "none";
-    if (loginBtn) {
-      loginBtn.textContent = "Logout";
-      loginBtn.onclick = () => {
-        token = null;
-        localStorage.removeItem("token");
-        setAuthUI(false);
-      };
-      loginBtn.title = name ? `Logged in as ${name}` : "";
-    }
+    // Hide guest buttons
+    guestBtns.forEach((b) => (b.style.display = "none"));
+    profileMenu.classList.remove("hidden");
+    profileName.textContent = name || "User";
+
+    // Toggle dropdown
+    document.getElementById("profile-btn").onclick = () => {
+      dropdown.classList.toggle("hidden");
+    };
+
+    // Logout handler
+    document.getElementById("logout-btn").onclick = () => {
+      token = null;
+      localStorage.removeItem("token");
+      dropdown.classList.add("hidden");
+      setAuthUI(false);
+      alert("Logged out!");
+    };
+
+    // "Your Orders"
+    document.getElementById("your-orders-btn").onclick = async () => {
+      if (!token) return alert("Please login to view your orders.");
+      const res = await fetch(`${API_BASE}/api/orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const orders = await res.json();
+      if (!orders.length) return alert("No orders yet.");
+      const msg = orders
+        .map((o) => `• ${o.orderId} — ₹${(o.amount / 100).toFixed(2)} — ${o.status}`)
+        .join("\n");
+      alert(`Your Orders:\n\n${msg}`);
+    };
+
+    // Hide dropdown if clicked outside
+    document.addEventListener("click", (e) => {
+      const menu = document.getElementById("profile-menu");
+      if (!menu.contains(e.target)) dropdown.classList.add("hidden");
+    });
   } else {
-    if (signupBtn) signupBtn.style.display = "";
-    if (loginBtn) {
-      loginBtn.textContent = "Login";
-      loginBtn.onclick = openLogin; // rebind
-      loginBtn.title = "";
-    }
+    // Show guest buttons again
+    guestBtns.forEach((b) => (b.style.display = ""));
+    profileMenu.classList.add("hidden");
   }
 }
 
